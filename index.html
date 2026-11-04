@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总</title>
+    <!-- Chart.js and DataLabels Plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -79,14 +81,12 @@
         </div>
     </header>
 
-    <!-- Empty Message -->
     <div id="noDataMessage" style="display: none; color: var(--ink3); text-align: center; padding: 20px;">
         No data available for the selected date and workstation combination.
     </div>
 
-    <!-- TABLES SECTION (Top) -->
+    <!-- TABLES SECTION -->
     <div id="tablesSection" style="display: none;">
-        <!-- BUTTONS AT THE TOP -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
             <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
                 📊 Download Excel (下载Excel)
@@ -101,24 +101,20 @@
         <div id="tablesContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- CHARTS SECTION (Bottom) -->
+    <!-- TREND CHARTS SECTION -->
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
-        <!-- BUTTONS AT THE TOP OF THE CHARTS SECTION -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
-                📊 Download Excel (下载Excel)
-            </button>
             <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Charts Image (Mobile)
+                📤 Share Defect Charts Image (Mobile)
             </button>
             <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Charts (PC)
+                📋 Copy Defect Charts (PC)
             </button>
         </div>
         <div id="chartsContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- OVERALL SUMMARY SECTION (Bottom) -->
+    <!-- OVERALL SUMMARY SECTION -->
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
             <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
@@ -148,7 +144,7 @@
     const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64', '#17673f', '#a14a00', '#52514e'];
     let chartInstances = [];
     let processedBarcodes = new Set();
-    const FIREBASE_URL = "https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json";
+    const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
     function parseMESData(dataArray) {
         dataArray.forEach(rawRow => {
@@ -173,12 +169,17 @@
                 dateObj = new Date(tempDate.getUTCFullYear(), tempDate.getUTCMonth(), tempDate.getUTCDate(), tempDate.getUTCHours(), tempDate.getUTCMinutes(), tempDate.getUTCSeconds());
             } else {
                 let timeStr = String(timeRaw || '').trim();
-                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
-                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
-                    let timePart = timeStr.split(' ')[1] || '00:00:00';
-                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                // Check if it's a Firebase JSON ISO date string
+                if (timeStr.includes('T') && timeStr.includes('Z')) {
+                    dateObj = new Date(timeStr);
+                } else {
+                    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
+                        let parts = timeStr.split(' ')[0].split(/[\/\-]/);
+                        let timePart = timeStr.split(' ')[1] || '00:00:00';
+                        timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                    }
+                    dateObj = new Date(timeStr.replace(/-/g, '/'));
                 }
-                dateObj = new Date(timeStr.replace(/-/g, '/'));
             }
             
             if (isNaN(dateObj.getTime())) return;
@@ -266,25 +267,30 @@
         fetch(FIREBASE_URL)
             .then(response => response.json())
             .then(data => {
-                if (data) {
-                    Object.values(data).forEach(record => {
-                        if (record && record.rawData) {
-                            parseMESData(record.rawData);
+                try {
+                    if (data && typeof data === 'object') {
+                        Object.values(data).forEach(record => {
+                            if (record && record.rawData) {
+                                parseMESData(record.rawData);
+                            }
+                        });
+                        
+                        const dateSelector = document.getElementById('dateSelector');
+                        dateSelector.options.length = 0; 
+                        globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
+                        
+                        if(globalStore.dates.length > 0) {
+                            dateSelector.selectedIndex = 0; 
+                            renderDashboard();
+                        } else {
+                            document.getElementById('reportDate').textContent = "Status: Ready for Data Upload";
                         }
-                    });
-                    
-                    const dateSelector = document.getElementById('dateSelector');
-                    dateSelector.options.length = 0; 
-                    globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
-                    
-                    if(globalStore.dates.length > 0) {
-                        dateSelector.selectedIndex = 0; 
-                        renderDashboard();
                     } else {
-                        document.getElementById('reportDate').textContent = "Status: Ready for Data Upload";
+                        document.getElementById('reportDate').textContent = "Status: Ready for Data Upload (No History)";
                     }
-                } else {
-                    document.getElementById('reportDate').textContent = "Status: Ready for Data Upload";
+                } catch (e) {
+                    console.error("Error processing Firebase data:", e);
+                    document.getElementById('reportDate').textContent = "Status: Ready (History Load Error)";
                 }
             })
             .catch(err => {
@@ -307,7 +313,12 @@
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
                 
+                // 1. Process data for the dashboard UI
                 parseMESData(jsonData);
+                
+                // ---------------------------------------------------------
+                // 2. SAVE TO FIREBASE REALTIME DATABASE
+                // ---------------------------------------------------------
                 
                 document.getElementById('reportDate').textContent = "Status: Saving backup to Database...";
                 
@@ -323,6 +334,7 @@
                 }).then(response => response.json())
                   .then(result => {
                       console.log("Successfully saved to Firebase with ID:", result.name);
+                      // Update UI after save completes
                       const dateSelector = document.getElementById('dateSelector');
                       dateSelector.options.length = 0; 
                       globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
@@ -331,12 +343,14 @@
                   }).catch(err => {
                       console.error("Firebase upload failed:", err);
                       alert("Warning: Could not save backup to Firebase. Dashboard will still load.");
+                      // Fallback UI load if Firebase fails
                       const dateSelector = document.getElementById('dateSelector');
                       dateSelector.options.length = 0; 
                       globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
                       if(globalStore.dates.length > 0) { dateSelector.selectedIndex = 0; }
                       renderDashboard();
                   });
+                // ---------------------------------------------------------
 
             } catch (error) {
                 console.error(error);
@@ -539,6 +553,7 @@
             return;
         }
 
+        // MISSING MODEL LOGIC + AUTO-GENERATE EMPTY TABLES
         selectedLines.forEach(line => {
             if (!activeData[line]) {
                 activeData[line] = {
@@ -819,10 +834,8 @@
             const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
             const borderAll = {
-                top: { style: "thin", color: { rgb: "000000" } },
-                bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } },
-                right: { style: "thin", color: { rgb: "000000" } }
+                top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } },
+                left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } }
             };
 
             selectedLines.forEach(line => {
