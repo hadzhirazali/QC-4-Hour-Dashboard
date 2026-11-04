@@ -640,17 +640,7 @@
                 }
                 ws_data.push(titleRow);
 
-                let headers = [
-                    "日期
-Date", "时间
-Time", "型号
-Model", "总产出
-Total Output", 
-                    "A", "注意
-Attention", "F", "A品率 (%)
-Peratusan A grade", 
-                    "判注意描述 Attention Abnormality Description"
-                ];
+                let headers = ["日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", "判注意描述 Attention Abnormality Description"];
                 let headerRow = headers.map(h => ({
                     v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll }
                 }));
