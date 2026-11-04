@@ -242,23 +242,45 @@
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
                 
+                // 1. Process data for the dashboard UI
                 parseMESData(jsonData);
                 
-                // BULLETPROOF DROPDOWN UPDATE TO FIX THE "CLICK 25 THEN 26" BUG
-                const dateSelector = document.getElementById('dateSelector');
-                dateSelector.options.length = 0; // Safely completely clear old options
-                globalStore.dates.forEach(d => {
-                    dateSelector.add(new Option(d, d));
-                });
+                // ---------------------------------------------------------
+                // 2. SAVE TO FIREBASE REALTIME DATABASE
+                // ---------------------------------------------------------
+                const firebaseURL = "https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json"; 
                 
-                if(globalStore.dates.length > 0) {
-                    dateSelector.selectedIndex = 0; // Force select the first item internally
-                }
+                document.getElementById('reportDate').textContent = "Status: Saving backup to Database...";
                 
-                // Allow the browser 100 milliseconds to visually draw the dropdown before rendering data
-                setTimeout(() => {
-                    renderDashboard();
-                }, 100);
+                const uploadPayload = {
+                    uploadTime: new Date().toISOString(),
+                    rawData: jsonData
+                };
+
+                fetch(firebaseURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(uploadPayload)
+                }).then(response => response.json())
+                  .then(result => {
+                      console.log("Successfully saved to Firebase with ID:", result.name);
+                      // Update UI after save completes
+                      const dateSelector = document.getElementById('dateSelector');
+                      dateSelector.options.length = 0; 
+                      globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
+                      if(globalStore.dates.length > 0) { dateSelector.selectedIndex = 0; }
+                      renderDashboard();
+                  }).catch(err => {
+                      console.error("Firebase upload failed:", err);
+                      alert("Warning: Could not save backup to Firebase. Dashboard will still load.");
+                      // Fallback UI load if Firebase fails
+                      const dateSelector = document.getElementById('dateSelector');
+                      dateSelector.options.length = 0; 
+                      globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
+                      if(globalStore.dates.length > 0) { dateSelector.selectedIndex = 0; }
+                      renderDashboard();
+                  });
+                // ---------------------------------------------------------
 
             } catch (error) {
                 console.error(error);
