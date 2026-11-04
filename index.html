@@ -135,12 +135,13 @@
     let processedBarcodes = new Set();
 
     // EXACT PARSER FROM YOUR WORKING 27.10.2026 FILE
+    
     function parseMESData(dataArray) {
         dataArray.forEach(rawRow => {
             const row = {};
-            for (let k in rawRow) row[k.trim()] = rawRow[k];
+            for (let k in rawRow) row[String(k).trim()] = rawRow[k];
             
-            let line = row['Production Line'];
+            let line = String(row['Production Line'] || '').trim();
             let timeRaw = row['Cut Film Time'];
             let barcode = row['Large cut labels'] || (row['Scan label'] ? row['Scan label'] + '_' + row['work station'] : row['Document No.']);
             
@@ -152,6 +153,10 @@
             let dateObj;
             if (timeRaw instanceof Date) {
                 dateObj = new Date(timeRaw.getUTCFullYear(), timeRaw.getUTCMonth(), timeRaw.getUTCDate(), timeRaw.getUTCHours(), timeRaw.getUTCMinutes(), timeRaw.getUTCSeconds());
+            } else if (typeof timeRaw === 'number') {
+                let epoch = Math.round((timeRaw - 25569) * 86400 * 1000);
+                let tempDate = new Date(epoch);
+                dateObj = new Date(tempDate.getUTCFullYear(), tempDate.getUTCMonth(), tempDate.getUTCDate(), tempDate.getUTCHours(), tempDate.getUTCMinutes(), tempDate.getUTCSeconds());
             } else {
                 let timeStr = String(timeRaw || '').trim();
                 if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
@@ -189,38 +194,53 @@
             
             if (!dayData[line]) {
                 dayData[line] = {
-                    model: row['Specification'] || row['Model'] || "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {} }))
+                    model: "",
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
                 };
+            }
+
+            let currentModel = row['Specification'] || row['Model'] || "";
+            if (currentModel && currentModel.toString().trim() !== "") {
+                dayData[line].model = currentModel.toString().trim();
             }
             
             let shiftData = dayData[line].shifts[intervalIndex];
-            shiftData.total += 1;
             
             let comp = String(row['Comprehensive inspection'] || '').trim();
-            if (comp === 'A') shiftData.a += 1;
-            else if (comp === '注意') shiftData.n += 1;
-            else if (comp === 'F') shiftData.f += 1;
-            
-            if (comp === '注意') {
-                let def1 = row['The main defects in the appearance of large slitting'];
-                let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
+            if (comp === 'A' || comp === '注意' || comp === 'F') {
+                shiftData.total += 1;
                 
-                let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
-                let ws = String(wsRaw).trim();
+                if (comp === 'A') shiftData.a += 1;
+                else if (comp === '注意') shiftData.n += 1;
+                else if (comp === 'F') shiftData.f += 1;
+    
+                let rawRemark = row['Station remarks'] || row['Station Remarks'] || row['Station remark'] || row['Station Remark'] || row['Remarks'] || row['Remark'];
+                let remarkKey = (rawRemark !== undefined && rawRemark !== null) ? String(rawRemark).trim() : '';
+                if (remarkKey === '') {
+                    if (comp === 'F') remarkKey = 'Blank (F)';
+                    else remarkKey = 'Blank';
+                }
+                shiftData.stationRemarks[remarkKey] = (shiftData.stationRemarks[remarkKey] || 0) + 1;
                 
-                const addDefect = (desc) => {
-                    if (desc && typeof desc === 'string' && desc.trim() !== '') {
-                        let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
-                        if (!shiftData.defects[nDef]) {
-                            shiftData.defects[nDef] = [];
+                if (comp === '注意') {
+                    let def1 = row['The main defects in the appearance of large slitting'];
+                    let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
+                    
+                    let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
+                    let ws = String(wsRaw).trim();
+                    
+                    const addDefect = (desc) => {
+                        if (desc && typeof desc === 'string' && desc.trim() !== '') {
+                            let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
+                            if (!shiftData.defects[nDef]) {
+                                shiftData.defects[nDef] = [];
+                            }
+                            shiftData.defects[nDef].push(ws);
                         }
-                        shiftData.defects[nDef].push(ws);
-                    }
-                };
-                addDefect(def1);
-                addDefect(def2);
-            }
+                    };
+                    addDefect(def1);
+                    addDefect(def2);
+                }
             } // END OF VALID COMP CHECK
         });
         
