@@ -4,9 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总</title>
-    <!-- Chart.js and DataLabels Plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -88,6 +86,7 @@
 
     <!-- TABLES SECTION (Top) -->
     <div id="tablesSection" style="display: none;">
+        <!-- BUTTONS AT THE TOP -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
             <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
                 📊 Download Excel (下载Excel)
@@ -102,30 +101,21 @@
         <div id="tablesContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- TREND CHARTS SECTION (Middle) -->
+    <!-- CHARTS SECTION (Bottom) -->
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
+        <!-- BUTTONS AT THE TOP OF THE CHARTS SECTION -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
+            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
+                📊 Download Excel (下载Excel)
+            </button>
             <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Defect Charts Image (Mobile)
+                📤 Share Charts Image (Mobile)
             </button>
             <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Defect Charts (PC)
+                📋 Copy Charts (PC)
             </button>
         </div>
         <div id="chartsContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
-    </div>
-
-    <!-- OVERALL SUMMARY SECTION (Bottom) -->
-    <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Summary Image (Mobile)
-            </button>
-            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Summary (PC)
-            </button>
-        </div>
-        <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
 </div>
@@ -139,13 +129,12 @@
 </script>
 
 <script>
-    Chart.register(ChartDataLabels);
-
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
-    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64', '#17673f', '#a14a00', '#52514e'];
+    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
     let chartInstances = [];
     let processedBarcodes = new Set();
 
+    // EXACT PARSER FROM YOUR WORKING 27.10.2026 FILE
     function parseMESData(dataArray) {
         dataArray.forEach(rawRow => {
             const row = {};
@@ -163,11 +152,6 @@
             let dateObj;
             if (timeRaw instanceof Date) {
                 dateObj = new Date(timeRaw.getUTCFullYear(), timeRaw.getUTCMonth(), timeRaw.getUTCDate(), timeRaw.getUTCHours(), timeRaw.getUTCMinutes(), timeRaw.getUTCSeconds());
-            } else if (typeof timeRaw === 'number') {
-                let Math_round = Math.round;
-                let epoch = Math_round((timeRaw - 25569) * 86400 * 1000);
-                let tempDate = new Date(epoch);
-                dateObj = new Date(tempDate.getUTCFullYear(), tempDate.getUTCMonth(), tempDate.getUTCDate(), tempDate.getUTCHours(), tempDate.getUTCMinutes(), tempDate.getUTCSeconds());
             } else {
                 let timeStr = String(timeRaw || '').trim();
                 if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
@@ -205,14 +189,9 @@
             
             if (!dayData[line]) {
                 dayData[line] = {
-                    model: "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
+                    model: row['Specification'] || row['Model'] || "",
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {} }))
                 };
-            }
-
-            let currentModel = row['Specification'] || row['Model'] || "";
-            if (currentModel && currentModel.toString().trim() !== "") {
-                dayData[line].model = currentModel.toString().trim();
             }
             
             let shiftData = dayData[line].shifts[intervalIndex];
@@ -222,18 +201,11 @@
             if (comp === 'A') shiftData.a += 1;
             else if (comp === '注意') shiftData.n += 1;
             else if (comp === 'F') shiftData.f += 1;
-
-            let rawRemark = row['Station remarks'] || row['Station Remarks'] || row['Station remark'] || row['Station Remark'] || row['Remarks'] || row['Remark'];
-            let remarkKey = (rawRemark !== undefined && rawRemark !== null) ? String(rawRemark).trim() : '';
-            if (remarkKey === '') {
-                if (comp === 'F') remarkKey = 'Blank (F)';
-                else remarkKey = 'Blank';
-            }
-            shiftData.stationRemarks[remarkKey] = (shiftData.stationRemarks[remarkKey] || 0) + 1;
             
             if (comp === '注意') {
                 let def1 = row['The main defects in the appearance of large slitting'];
                 let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
+                
                 let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
                 let ws = String(wsRaw).trim();
                 
@@ -249,6 +221,7 @@
                 addDefect(def1);
                 addDefect(def2);
             }
+            } // END OF VALID COMP CHECK
         });
         
         globalStore.dates.sort((a, b) => new Date(b) - new Date(a));
@@ -264,22 +237,25 @@
         reader.onload = function(e) {
             try {
                 const data = new Uint8Array(e.target.result);
+                // EXACT READER FROM YOUR WORKING FILE
                 const workbook = XLSX.read(data, {type: 'array', cellDates: true});
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
                 
                 parseMESData(jsonData);
                 
+                // BULLETPROOF DROPDOWN UPDATE TO FIX THE "CLICK 25 THEN 26" BUG
                 const dateSelector = document.getElementById('dateSelector');
-                dateSelector.options.length = 0; 
+                dateSelector.options.length = 0; // Safely completely clear old options
                 globalStore.dates.forEach(d => {
                     dateSelector.add(new Option(d, d));
                 });
                 
                 if(globalStore.dates.length > 0) {
-                    dateSelector.selectedIndex = 0; 
+                    dateSelector.selectedIndex = 0; // Force select the first item internally
                 }
                 
+                // Allow the browser 100 milliseconds to visually draw the dropdown before rendering data
                 setTimeout(() => {
                     renderDashboard();
                 }, 100);
@@ -324,7 +300,7 @@
             rowsHtml += `<tr>
                 ${dateCell}
                 <td>${time}</td>
-                <td>${lineData.model}</td>
+                <td>${shift.total > 0 ? lineData.model : ''}</td>
                 <td>${shift.total}</td>
                 <td>${shift.a}</td>
                 <td>${shift.n}</td>
@@ -364,103 +340,19 @@
         </div>`;
     }
 
-    function generateSummaryHTML(line, lineData) {
-        const intervals = globalStore.intervals;
-        
-        let uniqueRemarks = new Set();
-        lineData.shifts.forEach(s => {
-            Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r));
-        });
-        let remarkList = Array.from(uniqueRemarks).sort();
-
-        let shiftColsHTML = intervals.map(t => `<th>${t}</th>`).join('');
-        
-        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
-        let nRow = `<tr><td>注意 (Attention)</td>`;
-        let fRow = `<tr><td>F</td>`;
-        let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
-        
-        lineData.shifts.forEach(s => {
-            aRow += `<td>${s.a}</td>`; aTot += s.a;
-            nRow += `<td>${s.n}</td>`; nTot += s.n;
-            fRow += `<td>${s.f}</td>`; fTot += s.f;
-            overallTot += s.total;
-        });
-        
-        let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`;
-        nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`;
-        fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
-
-        let remarkRowsHTML = '';
-        if (remarkList.length === 0) {
-            remarkRowsHTML = `<tr><td>Station Remarks<br>(备注)</td><td>-</td>` + intervals.map(t => '<td>0</td>').join('') + `<td><b>0</b> (0.00%)</td></tr>`;
-        } else {
-            remarkList.forEach((rm, idx) => {
-                let rHtml = `<tr>`;
-                if (idx === 0) rHtml += `<td rowspan="${remarkList.length}">Station Remarks<br>(备注)</td>`;
-                rHtml += `<td>${rm}</td>`;
-                let rmTot = 0;
-                lineData.shifts.forEach(s => {
-                    let c = s.stationRemarks[rm] || 0;
-                    rHtml += `<td>${c}</td>`;
-                    rmTot += c;
-                });
-                let rPct = overallTot ? ((rmTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-                rHtml += `<td><b>${rmTot}</b> (${rPct})</td></tr>`;
-                remarkRowsHTML += rHtml;
-            });
-        }
-
-        return `
-        <div style="margin-bottom: 32px;">
-            <div class="grid" style="margin-bottom: 16px;">
-                <div class="card">
-                    <h2>${line} - Overall Grade Breakdown (总评占比)</h2>
-                    <div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div>
-                </div>
-                <div class="card">
-                    <h2>${line} - Station Remarks Breakdown (备注占比)</h2>
-                    <div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="excel-table" style="min-width: 800px;">
-                    <thead>
-                        <tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr>
-                        <tr class="header-row">
-                            <th style="width: 15%;">Category (类别)</th>
-                            <th style="width: 15%;">Item (项目)</th>
-                            ${shiftColsHTML}
-                            <th style="width: 15%;">Total (总计)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${aRow}${nRow}${fRow}${remarkRowsHTML}
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-    }
-
     function renderDashboard() {
         const selectedDate = document.getElementById('dateSelector').value;
         const noDataMsg = document.getElementById('noDataMessage');
         const tablesSec = document.getElementById('tablesSection');
         const chartsSec = document.getElementById('chartsSection');
-        const summarySec = document.getElementById('summarySection');
         const tablesCon = document.getElementById('tablesContainer');
         const chartsCon = document.getElementById('chartsContainer');
-        const summaryCon = document.getElementById('summaryContainer');
 
         if(!selectedDate) {
             document.getElementById('reportDate').textContent = "Status: Waiting for Data Upload...";
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
-            summarySec.style.display = 'none';
             return;
         }
         
@@ -470,69 +362,46 @@
         const checkboxes = document.querySelectorAll('#lineToggles input[type="checkbox"]');
         const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
+        // Safely clear old charts
         if (chartInstances && chartInstances.length > 0) {
-            chartInstances.forEach(chart => { if (chart) chart.destroy(); });
+            chartInstances.forEach(chart => {
+                if (chart) chart.destroy();
+            });
         }
         chartInstances = [];
         tablesCon.innerHTML = '';
         chartsCon.innerHTML = '';
-        summaryCon.innerHTML = '';
         
-        if (selectedLines.length === 0) {
+        let hasData = false;
+        selectedLines.forEach(line => {
+            if (activeData[line]) hasData = true;
+        });
+
+        // Hide/Show Logic
+        if (!hasData) {
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
-            summarySec.style.display = 'none';
             return;
         }
-
-        selectedLines.forEach(line => {
-            if (!activeData[line]) {
-                activeData[line] = {
-                    model: "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
-                };
-            }
-            
-            if (!activeData[line].model || activeData[line].model.trim() === "") {
-                let foundModel = "";
-                for (let d of globalStore.dates) {
-                    let dData = globalStore.data_by_date[d];
-                    if (dData && dData[line] && dData[line].model && dData[line].model.trim() !== "") {
-                        foundModel = dData[line].model.trim();
-                        break;
-                    }
-                }
-                
-                if (foundModel !== "") {
-                    activeData[line].model = foundModel;
-                } else {
-                    let m = prompt(`No model found for ${line}.\nPlease enter the Model/Specification (e.g., SW509J):`, "");
-                    activeData[line].model = m ? m.trim() : "N/A";
-                }
-            }
-        });
 
         noDataMsg.style.display = 'none';
         tablesSec.style.display = 'block';
         chartsSec.style.display = 'block';
-        summarySec.style.display = 'block';
 
-        // 1. Draw HTML Containers
+        // Draw Tables & Chart Containers
         selectedLines.forEach(line => {
             if (activeData[line]) {
                 tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, activeData[line], selectedDate));
                 chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
-                summaryCon.insertAdjacentHTML('beforeend', generateSummaryHTML(line, activeData[line]));
             }
         });
 
-        // 2. Draw Chart.js Graphs
+        // Draw Chart.js Graphs inside containers
         selectedLines.forEach(line => {
             const lineData = activeData[line];
             if (!lineData) return;
 
-            // ---- DEFECT TREND & PARETO CHARTS ----
             const defectMap = {};
             lineData.shifts.forEach((shift, index) => {
                 Object.entries(shift.defects).forEach(([defect, wsArray]) => {
@@ -541,6 +410,7 @@
                 });
             });
 
+            // Trend
             const datasets = Object.keys(defectMap).map((name, index) => ({
                 label: name,
                 data: defectMap[name],
@@ -550,17 +420,20 @@
 
             const ctxTrend = document.getElementById(`trendChart_${line}`);
             if (ctxTrend) {
-                chartInstances.push(new Chart(ctxTrend.getContext('2d'), {
+                const trendChart = new Chart(ctxTrend.getContext('2d'), {
                     type: 'bar',
                     data: { labels: globalStore.intervals, datasets: datasets },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, animation: false, 
-                        plugins: { legend: { position: 'top' }, datalabels: { display: false } },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: false, 
+                        plugins: { legend: { position: 'top' } },
                         scales: { y: { beginAtZero: true, title: { display: true, text: 'Defect Count' } } }
                     }
-                }));
+                });
+                chartInstances.push(trendChart);
             }
 
+            // Pareto
             let totals = Object.keys(defectMap).map(name => ({
                 name: name,
                 total: defectMap[name].reduce((a, b) => a + b, 0)
@@ -576,7 +449,7 @@
 
             const ctxPareto = document.getElementById(`paretoChart_${line}`);
             if (ctxPareto) {
-                chartInstances.push(new Chart(ctxPareto.getContext('2d'), {
+                const paretoChart = new Chart(ctxPareto.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: totals.map(item => item.name),
@@ -586,79 +459,27 @@
                         ]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false, animation: false,
-                        plugins: { datalabels: { display: false } },
+                        responsive: true, maintainAspectRatio: false,
+                        animation: false,
                         scales: {
                             y: { beginAtZero: true, position: 'left' },
-                            y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v.toFixed(2) + '%' } }
+                            y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%' } }
                         }
                     }
-                }));
-            }
-
-            // ---- NEW: PIE CHARTS (With Zigzag Label Positioning) ----
-            let totalA = 0, totalN = 0, totalF = 0;
-            lineData.shifts.forEach(s => { totalA += s.a; totalN += s.n; totalF += s.f; });
-            
-            const pieDataLabelConfig = {
-                formatter: (value, ctx) => {
-                    let sum = 0;
-                    ctx.chart.data.datasets[0].data.forEach(data => { sum += data; });
-                    if (sum === 0 || value === 0) return null;
-                    return (value * 100 / sum).toFixed(2) + "%";
-                },
-                color: '#fff', font: { weight: 'bold', size: 11 },
-                textStrokeColor: '#000', textStrokeWidth: 2,
-                anchor: 'center',
-                align: (context) => context.dataIndex % 2 === 0 ? 'end' : 'start',
-                offset: 25 
-            };
-
-            const ctxGrade = document.getElementById(`gradePie_${line}`);
-            if (ctxGrade) {
-                chartInstances.push(new Chart(ctxGrade.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: ['A', '注意 (Attention)', 'F'],
-                        datasets: [{ data: [totalA, totalN, totalF], backgroundColor: ['#a9d08e', '#eda100', '#e87ba4'] }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' }, datalabels: pieDataLabelConfig } }
-                }));
-            }
-
-            let aggRemarks = {};
-            lineData.shifts.forEach(s => {
-                Object.entries(s.stationRemarks).forEach(([rm, count]) => {
-                    aggRemarks[rm] = (aggRemarks[rm] || 0) + count;
                 });
-            });
-
-            const remarkKeys = Object.keys(aggRemarks);
-            const remarkVals = Object.values(aggRemarks);
-            const remarkColors = remarkKeys.map((_, i) => colors[i % colors.length]);
-
-            const ctxRemark = document.getElementById(`remarkPie_${line}`);
-            if (ctxRemark && remarkKeys.length > 0) {
-                chartInstances.push(new Chart(ctxRemark.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: remarkKeys,
-                        datasets: [{ data: remarkVals, backgroundColor: remarkColors }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' }, datalabels: pieDataLabelConfig } }
-                }));
+                chartInstances.push(paretoChart);
             }
         });
     }
 
-    // WIDENED CAPTURE ENGINE FOR A WIDER IMAGE
+    // Capture Functions
     async function captureElement(elementId) {
         const target = document.getElementById(elementId);
         const printContainer = document.createElement('div');
         printContainer.style.position = 'absolute';
         printContainer.style.top = '-9999px';
         printContainer.style.left = '0';
-        printContainer.style.width = '1600px'; 
+        printContainer.style.width = '1400px'; 
         printContainer.style.background = '#f1f1ee';
         printContainer.style.padding = '20px';
         printContainer.style.zIndex = '-1';
@@ -667,21 +488,29 @@
         clone.style.margin = '0';
         clone.style.display = 'block'; 
         clone.style.borderTop = 'none'; 
-        clone.style.width = '1600px'; 
-        clone.style.maxWidth = '1600px'; 
         
         const scrollableContainers = clone.querySelectorAll('.table-container');
-        scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.width = '100%'; c.style.border = 'none'; });
+        scrollableContainers.forEach(c => {
+            c.style.overflow = 'visible'; 
+            c.style.width = '100%';
+            c.style.border = 'none'; 
+        });
         
         const tables = clone.querySelectorAll('.excel-table');
-        tables.forEach(t => { t.style.width = '100%'; t.style.minWidth = '1400px'; t.style.border = '1px solid #141413'; });
+        tables.forEach(t => {
+            t.style.width = '100%';
+            t.style.minWidth = '1200px'; 
+            t.style.border = '1px solid #141413'; 
+        });
 
         const originalCanvases = target.querySelectorAll('canvas');
         const clonedCanvases = clone.querySelectorAll('canvas');
         for (let i = 0; i < originalCanvases.length; i++) {
             const dataURL = originalCanvases[i].toDataURL("image/png");
             const img = document.createElement('img');
-            img.src = dataURL; img.style.width = '100%'; img.style.height = '100%';
+            img.src = dataURL;
+            img.style.width = '100%';
+            img.style.height = '100%';
             clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
         }
 
@@ -689,7 +518,7 @@
         document.body.appendChild(printContainer);
         
         try {
-            return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1600 });
+            return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1400 });
         } finally {
             document.body.removeChild(printContainer); 
         }
@@ -732,7 +561,12 @@
                 } else {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                     btn.textContent = '✅ Downloaded!';
                 }
                 setTimeout(() => btn.textContent = originalText, 2500);
@@ -743,13 +577,11 @@
         }
     }
 
-    // Bindings
+    // Button Bindings
     document.getElementById('copyTableBtn').addEventListener('click', function() { handleCopy('tablesContainer', this); });
     document.getElementById('shareTableBtn').addEventListener('click', function() { handleShare('tablesContainer', this, 'QC_Tables'); });
     document.getElementById('copyChartBtn').addEventListener('click', function() { handleCopy('chartsContainer', this); });
     document.getElementById('shareChartBtn').addEventListener('click', function() { handleShare('chartsContainer', this, 'QC_Charts'); });
-    document.getElementById('copySummaryBtn').addEventListener('click', function() { handleCopy('summaryContainer', this); });
-    document.getElementById('shareSummaryBtn').addEventListener('click', function() { handleShare('summaryContainer', this, 'QC_Summary'); });
     document.getElementById('exportExcelBtn_top').addEventListener('click', exportToExcel);
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
 
@@ -766,8 +598,10 @@
             const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
             const borderAll = {
-                top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } }
+                top: { style: "thin", color: { rgb: "000000" } },
+                bottom: { style: "thin", color: { rgb: "000000" } },
+                left: { style: "thin", color: { rgb: "000000" } },
+                right: { style: "thin", color: { rgb: "000000" } }
             };
 
             selectedLines.forEach(line => {
@@ -775,10 +609,30 @@
                 const lineData = activeData[line];
                 let ws_data = [];
                 
-                ws_data.push([{ v: `${line} 检验情况汇总 (Inspection Summary)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
+                let titleRow = [];
+                for(let i = 0; i < 9; i++) {
+                    titleRow.push({
+                        v: i === 0 ? `${line} 检验情况汇总 (Inspection Summary)` : "",
+                        s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll }
+                    });
+                }
+                ws_data.push(titleRow);
 
-                let headers = ["日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", "判注意描述 Attention Abnormality Description"];
-                ws_data.push(headers.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } })));
+                let headers = [
+                    "日期
+Date", "时间
+Time", "型号
+Model", "总产出
+Total Output", 
+                    "A", "注意
+Attention", "F", "A品率 (%)
+Peratusan A grade", 
+                    "判注意描述 Attention Abnormality Description"
+                ];
+                let headerRow = headers.map(h => ({
+                    v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll }
+                }));
+                ws_data.push(headerRow);
 
                 lineData.shifts.forEach((shift, index) => {
                     const time = globalStore.intervals[index];
@@ -788,82 +642,26 @@
                         return `${k}${wsStr} (${v.length})`;
                     }).join(', ');
                     if (desc === '') desc = '-';
-                    const aGradeRate = shift.total > 0 ? (shift.a / shift.total) : 0;
                     
-                    let dataArray = [index === 0 ? selectedDate : "", time, lineData.model, shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
-                    ws_data.push(dataArray.map((val, cIdx) => {
+                    const aGradeRate = shift.total > 0 ? (shift.a / shift.total) : 0;
+                    const dateCell = index === 0 ? selectedDate : "";
+                    
+                    let dataArray = [dateCell, time, shift.total > 0 ? lineData.model : "", shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
+                    
+                    let formattedRow = dataArray.map((val, cIdx) => {
                         let cell = { v: val, s: { alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } };
                         if (cIdx === 7 && typeof val === 'number') { cell.t = 'n'; cell.z = "0.00%"; }
-                        if (cIdx === 8) cell.s.alignment.horizontal = "left";
+                        if (cIdx === 8) { cell.s.alignment.horizontal = "left"; }
                         return cell;
-                    }));
-                });
-
-                // Append Summary Table to Excel Download
-                ws_data.push([]); 
-                ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
-                
-                let sumHeaders = ["Category (类别)", "Item (项目)", ...globalStore.intervals, "Total (总计)"];
-                ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
-
-                let aRow = [{v:"Comprehensive Grade (总评)"}, {v:"A"}];
-                let nRow = [{v:""}, {v:"注意 (Attention)"}];
-                let fRow = [{v:""}, {v:"F"}];
-                let totalA = 0, totalN = 0, totalF = 0, totalOutput = 0;
-
-                lineData.shifts.forEach(s => {
-                    aRow.push({v: s.a}); totalA += s.a;
-                    nRow.push({v: s.n}); totalN += s.n;
-                    fRow.push({v: s.f}); totalF += s.f;
-                    totalOutput += s.total;
-                });
-                
-                let aPct = totalOutput > 0 ? ((totalA / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                let nPct = totalOutput > 0 ? ((totalN / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                let fPct = totalOutput > 0 ? ((totalF / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                aRow.push({v: `${totalA} (${aPct})`});
-                nRow.push({v: `${totalN} (${nPct})`});
-                fRow.push({v: `${totalF} (${fPct})`});
-                
-                let s_fmt = { alignment: { horizontal: "center", vertical: "center" }, border: borderAll };
-                ws_data.push(aRow.map(cell => ({v: cell.v, s: s_fmt})));
-                ws_data.push(nRow.map(cell => ({v: cell.v, s: s_fmt})));
-                ws_data.push(fRow.map(cell => ({v: cell.v, s: s_fmt})));
-
-                let uniqueRemarks = new Set();
-                lineData.shifts.forEach(s => { Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r)); });
-                let remarks = Array.from(uniqueRemarks).sort();
-
-                if(remarks.length === 0) {
-                    let emptyRem = [{v:"Station Remarks (备注)"}, {v:"-"}];
-                    lineData.shifts.forEach(() => emptyRem.push({v: 0}));
-                    emptyRem.push({v: "0 (0.00%)"});
-                    ws_data.push(emptyRem.map(cell => ({v: cell.v, s: s_fmt})));
-                } else {
-                    remarks.forEach((rm, idx) => {
-                        let rRow = [{v: idx===0 ? "Station Remarks (备注)" : ""}, {v: rm}];
-                        let rmTot = 0;
-                        lineData.shifts.forEach(s => {
-                            let c = s.stationRemarks[rm] || 0;
-                            rRow.push({v: c});
-                            rmTot += c;
-                        });
-                        let rPct = totalOutput > 0 ? ((rmTot / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                        rRow.push({v: `${rmTot} (${rPct})`});
-                        ws_data.push(rRow.map(cell => ({v: cell.v, s: s_fmt})));
                     });
-                }
+                    ws_data.push(formattedRow);
+                });
 
                 const ws = XLSX.utils.aoa_to_sheet(ws_data);
-                
                 ws['!merges'] = [ { s: {r: 0, c: 0}, e: {r: 0, c: 8} }, { s: {r: 2, c: 0}, e: {r: 7, c: 0} } ];
-                ws['!merges'].push({ s: {r: 9, c: 0}, e: {r: 9, c: 8} });
-                ws['!merges'].push({ s: {r: 11, c: 0}, e: {r: 13, c: 0} });
-                if(remarks.length > 1) {
-                    ws['!merges'].push({ s: {r: 14, c: 0}, e: {r: 13 + remarks.length, c: 0} });
-                }
+                ws['!cols'] = [ { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
+                ws['!rows'] = [ { hpx: 30 }, { hpx: 40 }, { hpx: 54 }, { hpx: 54 }, { hpx: 54 }, { hpx: 54 }, { hpx: 54 }, { hpx: 54 } ];
 
-                ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 20 } ];
                 XLSX.utils.book_append_sheet(wb, ws, line);
             });
 
