@@ -60,14 +60,10 @@
                 <input type="file" id="mesFileUpload" accept=".xlsx,.xls,.csv" style="display: none;">
             </label>
             <div class="seg" id="lineToggles">
-                <input type="checkbox" id="cb_W1" value="W1"><label for="cb_W1">W1</label>
-                <input type="checkbox" id="cb_W2" value="W2"><label for="cb_W2">W2</label>
-                <input type="checkbox" id="cb_W3" value="W3"><label for="cb_W3">W3</label>
-                <input type="checkbox" id="cb_W4" value="W4"><label for="cb_W4">W4</label>
-                <input type="checkbox" id="cb_W5" value="W5"><label for="cb_W5">W5</label>
-                <input type="checkbox" id="cb_W6" value="W6"><label for="cb_W6">W6</label>
-                <input type="checkbox" id="cb_W7" value="W7"><label for="cb_W7">W7</label>
-                <input type="checkbox" id="cb_W8" value="W8"><label for="cb_W8">W8</label>
+                <input type="checkbox" id="cb_W1" value="W1" checked><label for="cb_W1">W1</label>
+                <input type="checkbox" id="cb_W2" value="W2" checked><label for="cb_W2">W2</label>
+                <input type="checkbox" id="cb_W3" value="W3" checked><label for="cb_W3">W3</label>
+                <input type="checkbox" id="cb_W4" value="W4" checked><label for="cb_W4">W4</label>
             </div>
         </div>
         <div style="width: 100%; border-top: 1px solid var(--line); padding-top: 12px; display: flex; align-items: center; gap: 10px;">
@@ -133,15 +129,15 @@
     const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
     let chartInstances = [];
     let processedBarcodes = new Set();
+    const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
-    // EXACT PARSER FROM YOUR WORKING 27.10.2026 FILE
-    
+    // EXACT PARSER FROM YOUR WORKING FILE
     function parseMESData(dataArray) {
         dataArray.forEach(rawRow => {
             const row = {};
             for (let k in rawRow) row[String(k).trim()] = rawRow[k];
             
-            let line = String(row['Production Line'] || '').trim();
+            let line = row['Production Line'];
             let timeRaw = row['Cut Film Time'];
             let barcode = row['Large cut labels'] || (row['Scan label'] ? row['Scan label'] + '_' + row['work station'] : row['Document No.']);
             
@@ -159,12 +155,16 @@
                 dateObj = new Date(tempDate.getUTCFullYear(), tempDate.getUTCMonth(), tempDate.getUTCDate(), tempDate.getUTCHours(), tempDate.getUTCMinutes(), tempDate.getUTCSeconds());
             } else {
                 let timeStr = String(timeRaw || '').trim();
-                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
-                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
-                    let timePart = timeStr.split(' ')[1] || '00:00:00';
-                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                if (timeStr.includes('T') && timeStr.includes('Z')) {
+                    dateObj = new Date(timeStr);
+                } else {
+                    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
+                        let parts = timeStr.split(' ')[0].split(/[\/\-]/);
+                        let timePart = timeStr.split(' ')[1] || '00:00:00';
+                        timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                    }
+                    dateObj = new Date(timeStr.replace(/-/g, '/'));
                 }
-                dateObj = new Date(timeStr.replace(/-/g, '/'));
             }
             
             if (isNaN(dateObj.getTime())) return;
@@ -194,58 +194,83 @@
             
             if (!dayData[line]) {
                 dayData[line] = {
-                    model: "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
+                    model: row['Specification'] || row['Model'] || "",
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {} }))
                 };
-            }
-
-            let currentModel = row['Specification'] || row['Model'] || "";
-            if (currentModel && currentModel.toString().trim() !== "") {
-                dayData[line].model = currentModel.toString().trim();
             }
             
             let shiftData = dayData[line].shifts[intervalIndex];
+            shiftData.total += 1;
             
             let comp = String(row['Comprehensive inspection'] || '').trim();
-            if (comp === 'A' || comp === '注意' || comp === 'F') {
-                shiftData.total += 1;
+            if (comp === 'A') shiftData.a += 1;
+            else if (comp === '注意') shiftData.n += 1;
+            else if (comp === 'F') shiftData.f += 1;
+            
+            if (comp === '注意') {
+                let def1 = row['The main defects in the appearance of large slitting'];
+                let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
                 
-                if (comp === 'A') shiftData.a += 1;
-                else if (comp === '注意') shiftData.n += 1;
-                else if (comp === 'F') shiftData.f += 1;
-    
-                let rawRemark = row['Station remarks'] || row['Station Remarks'] || row['Station remark'] || row['Station Remark'] || row['Remarks'] || row['Remark'];
-                let remarkKey = (rawRemark !== undefined && rawRemark !== null) ? String(rawRemark).trim() : '';
-                if (remarkKey === '') {
-                    if (comp === 'F') remarkKey = 'Blank (F)';
-                    else remarkKey = 'Blank';
-                }
-                shiftData.stationRemarks[remarkKey] = (shiftData.stationRemarks[remarkKey] || 0) + 1;
+                let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
+                let ws = String(wsRaw).trim();
                 
-                if (comp === '注意') {
-                    let def1 = row['The main defects in the appearance of large slitting'];
-                    let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
-                    
-                    let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
-                    let ws = String(wsRaw).trim();
-                    
-                    const addDefect = (desc) => {
-                        if (desc && typeof desc === 'string' && desc.trim() !== '') {
-                            let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
-                            if (!shiftData.defects[nDef]) {
-                                shiftData.defects[nDef] = [];
-                            }
-                            shiftData.defects[nDef].push(ws);
+                const addDefect = (desc) => {
+                    if (desc && typeof desc === 'string' && desc.trim() !== '') {
+                        let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
+                        if (!shiftData.defects[nDef]) {
+                            shiftData.defects[nDef] = [];
                         }
-                    };
-                    addDefect(def1);
-                    addDefect(def2);
-                }
-            } // END OF VALID COMP CHECK
+                        shiftData.defects[nDef].push(ws);
+                    }
+                };
+                addDefect(def1);
+                addDefect(def2);
+            }
         });
         
         globalStore.dates.sort((a, b) => new Date(b) - new Date(a));
     }
+
+    // CLOUD SYNC ON PAGE LOAD
+    window.addEventListener('DOMContentLoaded', () => {
+        fetch(FIREBASE_URL, { cache: "no-store" })
+            .then(response => {
+                if (!response.ok) throw new Error("Firebase Read Failed: " + response.status);
+                return response.json();
+            })
+            .then(data => {
+                try {
+                    if (data && typeof data === 'object') {
+                        Object.values(data).forEach(record => {
+                            if (record && record.rawData) {
+                                parseMESData(record.rawData);
+                            }
+                        });
+                        
+                        const dateSelector = document.getElementById('dateSelector');
+                        dateSelector.options.length = 0; 
+                        globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
+                        
+                        if(globalStore.dates.length > 0) {
+                            dateSelector.selectedIndex = 0; 
+                            document.getElementById('reportDate').textContent = "Status: Data Loaded Successfully from Firebase";
+                            renderDashboard();
+                        } else {
+                            document.getElementById('reportDate').textContent = "Status: Ready for Data Upload";
+                        }
+                    } else {
+                        document.getElementById('reportDate').textContent = "Status: Ready for Data Upload (No History)";
+                    }
+                } catch (e) {
+                    console.error("Error processing Firebase data:", e);
+                    document.getElementById('reportDate').textContent = "Status: Ready (History Load Error)";
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load from Firebase:", err);
+                document.getElementById('reportDate').textContent = "Status: Ready (Running Local Mode)";
+            });
+    });
 
     document.getElementById('mesFileUpload').addEventListener('change', function(event) {
         const file = event.target.files[0];
@@ -257,7 +282,6 @@
         reader.onload = function(e) {
             try {
                 const data = new Uint8Array(e.target.result);
-                // EXACT READER FROM YOUR WORKING FILE
                 const workbook = XLSX.read(data, {type: 'array', cellDates: true});
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
@@ -268,8 +292,6 @@
                 // ---------------------------------------------------------
                 // 2. SAVE TO FIREBASE REALTIME DATABASE
                 // ---------------------------------------------------------
-                const firebaseURL = "https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json"; 
-                
                 document.getElementById('reportDate').textContent = "Status: Saving backup to Database...";
                 
                 const uploadPayload = {
@@ -277,11 +299,17 @@
                     rawData: jsonData
                 };
 
-                fetch(firebaseURL, {
+                fetch(FIREBASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(uploadPayload)
-                }).then(response => response.json())
+                }).then(response => {
+                    if (!response.ok) {
+                        alert("ERROR: Firebase blocked the save! Please go to Firebase -> Realtime Database -> Rules and set .read and .write to true.");
+                        throw new Error("Firebase Write Failed");
+                    }
+                    return response.json();
+                })
                   .then(result => {
                       console.log("Successfully saved to Firebase with ID:", result.name);
                       // Update UI after save completes
@@ -289,15 +317,17 @@
                       dateSelector.options.length = 0; 
                       globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
                       if(globalStore.dates.length > 0) { dateSelector.selectedIndex = 0; }
+                      document.getElementById('reportDate').textContent = "Status: Data Uploaded and Saved to Cloud";
                       renderDashboard();
                   }).catch(err => {
                       console.error("Firebase upload failed:", err);
                       alert("Warning: Could not save backup to Firebase. Dashboard will still load.");
-                      // Fallback UI load if Firebase fails
+                      // Fallback UI load if Firebase fails (like when running locally)
                       const dateSelector = document.getElementById('dateSelector');
                       dateSelector.options.length = 0; 
                       globalStore.dates.forEach(d => { dateSelector.add(new Option(d, d)); });
                       if(globalStore.dates.length > 0) { dateSelector.selectedIndex = 0; }
+                      document.getElementById('reportDate').textContent = "Status: Local Data Loaded (Cloud Save Blocked)";
                       renderDashboard();
                   });
                 // ---------------------------------------------------------
@@ -391,14 +421,11 @@
         const chartsCon = document.getElementById('chartsContainer');
 
         if(!selectedDate) {
-            document.getElementById('reportDate').textContent = "Status: Waiting for Data Upload...";
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
             return;
         }
-        
-        document.getElementById('reportDate').textContent = "Date: " + selectedDate;
         
         const activeData = globalStore.data_by_date[selectedDate] || {};
         const checkboxes = document.querySelectorAll('#lineToggles input[type="checkbox"]');
@@ -660,7 +687,11 @@
                 }
                 ws_data.push(titleRow);
 
-                let headers = ["日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", "判注意描述 Attention Abnormality Description"];
+                let headers = [
+                    "日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", 
+                    "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", 
+                    "判注意描述 Attention Abnormality Description"
+                ];
                 let headerRow = headers.map(h => ({
                     v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll }
                 }));
@@ -706,6 +737,5 @@
         }
     }
 </script>
-
 </body>
 </html>
