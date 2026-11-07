@@ -89,34 +89,63 @@
         </div>
     </header>
 
+    <!-- Empty Message -->
     <div id="noDataMessage" style="display: none; color: var(--ink3); text-align: center; padding: 20px;">
         No data available for the selected date and workstation combination.
     </div>
 
+    <!-- TABLES SECTION (Top) -->
     <div id="tablesSection" style="display: none;">
+        <!-- BUTTONS AT THE TOP -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
-            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Tables Image (Mobile)</button>
-            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Tables (PC)</button>
+            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
+                📊 Download Excel (下载Excel)
+            </button>
+            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
+                📤 Share Tables Image (Mobile)
+            </button>
+            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
+                📋 Copy Tables (PC)
+            </button>
         </div>
         <div id="tablesContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
+    <!-- CHARTS SECTION (Bottom) -->
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
+        <!-- BUTTONS AT THE TOP OF THE CHARTS SECTION -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
-            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Charts Image (Mobile)</button>
-            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Charts (PC)</button>
+            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
+                📊 Download Excel (下载Excel)
+            </button>
+            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
+                📤 Share Charts Image (Mobile)
+            </button>
+            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
+                📋 Copy Charts (PC)
+            </button>
         </div>
         <div id="chartsContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
+    <!-- OVERALL SUMMARY SECTION (Bottom) -->
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Summary Image (Mobile)</button>
-            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Summary (PC)</button>
+            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
+                📤 Share Summary Image (Mobile)
+            </button>
+            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
+                📋 Copy Summary (PC)
+            </button>
         </div>
         <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
+    </div>
+
+    <!-- BACK TO TOP BUTTON -->
+    <div style="text-align: center; margin-top: 40px; margin-bottom: 20px; padding-bottom: 20px;">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); color: #fff; padding: 10px 24px; font-size: 14px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            ⬆️ Back to Top (返回顶部)
+        </button>
     </div>
 </div>
 
@@ -135,7 +164,7 @@
 
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
     globalStore.userDecisions = window.globalStoreCache.userDecisions;
-    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64', '#17673f', '#a14a00', '#52514e'];
+    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
     let chartInstances = [];
     let processedBarcodes = new Set();
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
@@ -236,7 +265,6 @@
             
             let comp = String(row['Comprehensive inspection'] || '').trim();
             
-            // STRICT TOTAL OUTPUT FIX - ONLY COMPUTES GRADES
             if (comp === 'A' || comp === '注意' || comp === 'F') {
                 shiftData.total += 1;
                 mData.total += 1;
@@ -362,7 +390,7 @@
                 });
             } catch (error) {
                 console.error(error);
-                alert('Error processing the file. Please ensure it is a standard MES Excel export.');
+                alert('Error processing the file. If you are selecting the file directly from Google Drive or OneDrive, please move it to your Desktop first. Make sure it is a standard MES Excel export.');
                 document.getElementById('reportDate').textContent = "Status: Error parsing file.";
             } finally {
                 event.target.value = '';
@@ -520,8 +548,6 @@
                 lineData = { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
             }
             
-            // Find the index of the LAST shift that actually has output data.
-            // Any empty shifts AFTER this index are in the future, and should be completely blank.
             let lastActiveIndex = -1;
             for(let i = 0; i < 6; i++) {
                 let shiftTotal = 0;
@@ -550,7 +576,7 @@
             } else if (modelArray.length === 1) {
                 forcedModel = modelArray[0];
             } else {
-                forcedModel = ""; // Line is completely empty for the day
+                forcedModel = ""; 
             }
             
             let tablesNeeded = splitTables ? modelArray : [forcedModel];
@@ -572,9 +598,7 @@
                     let modelsToSum = splitTables ? (rawShift.models[targetModel] ? [targetModel] : []) : modelsInShift;
                     
                     if (modelsToSum.length === 0) {
-                        // ZERO OUTPUT LOGIC
                         if (i < lastActiveIndex) {
-                            // It is a GAP shift. Pop up and ask the user!
                             let dKey = `gap_${selectedDate}_${line}_${i}_${targetModel}`;
                             let shiftName = globalStore.intervals[i];
                             if (!globalStore.userDecisions[dKey]) {
@@ -584,7 +608,6 @@
                             tShift.model = globalStore.userDecisions[dKey];
                             prevModelTracker = tShift.model;
                         } else {
-                            // It is a FUTURE/END shift (or whole day empty). Silently blank. NO POP-UPS.
                             tShift.model = "";
                         }
                     } else {
@@ -761,13 +784,11 @@
             const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
             const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
             
-            // KEY FIX: Only display the model text if total output > 0 or if explicitly confirmed by a gap prompt.
-            // For future shifts, shift.model is set to "" so it naturally displays as completely blank.
-            let displayModel = shift.model || '';
+            let displayModel = shift.total > 0 ? (shift.model || '') : '';
             
             rowsHtml += `<tr>${dateCell}<td>${time}</td><td>${displayModel}</td><td>${shift.total}</td><td>${shift.a}</td><td>${shift.n}</td><td>${shift.f}</td><td>${aGradeRate}</td><td class="desc">${desc}</td></tr>`;
         });
-        return `<div class="table-container" style="margin-bottom: 24px;"><table class="excel-table"><thead><tr class="title-row"><th colspan="9">${line} 检验情况汇总 (Inspection Summary)</th></tr><tr class="header-row"><th>日期<br>Date</th><th>时间<br>Time</th><th>型号<br>Model</th><th>总产出<br>Total Output</th><th>A</th><th>注意<br>Attention</th><th>F</th><th>A品率 (%)<br>Peratusan A grade</th><th style="width: 50%;">判注意描述 Attention Abnormality Description</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+        return `<div class="table-container" style="margin-bottom: 24px;"><table class="excel-table" style="width: 100%; min-width: 1200px;"><thead><tr class="title-row"><th colspan="9">${line} 检验情况汇总 (Inspection Summary)</th></tr><tr class="header-row"><th>日期<br>Date</th><th>时间<br>Time</th><th>型号<br>Model</th><th>总产出<br>Total Output</th><th>A</th><th>注意<br>Attention</th><th>F</th><th>A品率 (%)<br>Peratusan A grade</th><th style="width: 50%;">判注意描述 Attention Abnormality Description</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
     }
 
     function generateChartsHTML(line) {
@@ -821,7 +842,7 @@
             });
         }
 
-        return `<div style="margin-bottom: 32px;"><div class="grid" style="margin-bottom: 16px;"><div class="card"><h2>${line} - Overall Grade Breakdown (总评占比)</h2><div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div></div><div class="card"><h2>${line} - Station Remarks Breakdown (备注占比)</h2><div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div></div></div><div class="table-container"><table class="excel-table" style="min-width: 800px;"><thead><tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr><tr class="header-row"><th style="width: 15%;">Category (类别)</th><th style="width: 15%;">Item (项目)</th>${shiftColsHTML}<th style="width: 15%;">Total (总计)</th></tr></thead><tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody></table></div></div>`;
+        return `<div style="margin-bottom: 32px;"><div class="grid" style="margin-bottom: 16px;"><div class="card"><h2>${line} - Overall Grade Breakdown (总评占比)</h2><div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div></div><div class="card"><h2>${line} - Station Remarks Breakdown (备注占比)</h2><div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div></div></div><div class="table-container"><table class="excel-table" style="width: 100%; min-width: 1200px;"><thead><tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr><tr class="header-row"><th style="width: 15%;">Category (类别)</th><th style="width: 15%;">Item (项目)</th>${shiftColsHTML}<th style="width: 15%;">Total (总计)</th></tr></thead><tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody></table></div></div>`;
     }
 
     async function captureElement(elementId) {
@@ -829,8 +850,10 @@
         const printContainer = document.createElement('div');
         printContainer.style.position = 'absolute'; printContainer.style.top = '-9999px'; printContainer.style.left = '0';
         printContainer.style.width = '1400px'; printContainer.style.background = '#f1f1ee'; printContainer.style.padding = '20px'; printContainer.style.zIndex = '-1';
+        
         const clone = target.cloneNode(true);
         clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none'; 
+        clone.style.width = '1400px'; clone.style.minWidth = '1400px'; 
         
         const scrollableContainers = clone.querySelectorAll('.table-container');
         scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.width = '100%'; c.style.border = 'none'; });
@@ -848,6 +871,7 @@
             img.style.height = '100%';
             clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
         }
+        
         printContainer.appendChild(clone);
         document.body.appendChild(printContainer);
         try { return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1400 }); } finally { document.body.removeChild(printContainer); }
@@ -999,7 +1023,7 @@
                     if (desc === '') desc = '-';
                     const aGradeRate = shift.total > 0 ? (shift.a / shift.total) : 0;
                     
-                    let displayModel = shift.model || '';
+                    let displayModel = shift.total > 0 ? (shift.model || '') : '';
                     
                     let dataArray = [index === 0 ? selectedDate : "", time, displayModel, shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
                     ws_data.push(dataArray.map((val, cIdx) => {
