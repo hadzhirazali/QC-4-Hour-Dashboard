@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总</title>
+    <!-- Safely load external libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -46,8 +47,11 @@
         .excel-table { border-collapse: collapse; width: 100%; min-width: 1200px; font-size: 13px; text-align: center; }
         .excel-table th, .excel-table td { border: 1px solid var(--ink); padding: 6px; }
         .excel-table tbody tr { height: 54px; }
-        .excel-table thead tr.title-row th { background-color: var(--tb-blue); font-weight: bold; font-size: 15px; padding: 8px;}
-        .excel-table thead tr.header-row th { background-color: var(--tb-green); font-weight: normal; }
+        
+        /* Remove default hardcoded blue/green colors so JS overrides can take full effect */
+        .excel-table thead tr.title-row th { background-color: inherit; font-weight: bold; font-size: 15px; padding: 8px;}
+        .excel-table thead tr.header-row th { background-color: inherit; font-weight: normal; }
+        
         .excel-table td.desc { text-align: left; line-height: 1.5; }
     </style>
 </head>
@@ -82,9 +86,7 @@
             <div style="display: flex; gap: 8px;">
                 <button id="clearDateBtn" class="upload-btn btn-warn">🗑️ Clear Selected Date</button>
                 <button id="clearAllBtn" class="upload-btn btn-danger">🗑️ Clear All Cloud Data</button>
-                <button id="copyMessageBtn" class="upload-btn" style="background: #fff; border-color: #141413; color: #141413;">
-                    📋 Copy WeChat Message
-                </button>
+                <button id="copyMessageBtn" class="upload-btn" style="background: #fff; border-color: #141413; color: #141413;">📋 Copy WeChat Message</button>
             </div>
         </div>
     </header>
@@ -98,15 +100,9 @@
     <div id="tablesSection" style="display: none;">
         <!-- BUTTONS AT THE TOP -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
-                📊 Download Excel (下载Excel)
-            </button>
-            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Tables Image (Mobile)
-            </button>
-            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Tables (PC)
-            </button>
+            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
+            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Tables Image (Mobile)</button>
+            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Tables (PC)</button>
         </div>
         <div id="tablesContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
@@ -115,15 +111,9 @@
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <!-- BUTTONS AT THE TOP OF THE CHARTS SECTION -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
-                📊 Download Excel (下载Excel)
-            </button>
-            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Charts Image (Mobile)
-            </button>
-            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Charts (PC)
-            </button>
+            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
+            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Charts Image (Mobile)</button>
+            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Charts (PC)</button>
         </div>
         <div id="chartsContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
@@ -131,19 +121,15 @@
     <!-- OVERALL SUMMARY SECTION (Bottom) -->
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Summary Image (Mobile)
-            </button>
-            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Summary (PC)
-            </button>
+            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Summary Image (Mobile)</button>
+            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Summary (PC)</button>
         </div>
         <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- BACK TO TOP BUTTON -->
-    <div style="text-align: center; margin-top: 40px; margin-bottom: 20px; padding-bottom: 20px;">
-        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); color: #fff; padding: 10px 24px; font-size: 14px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <!-- SINGLE BACK TO TOP BUTTON -->
+    <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); color: #fff; padding: 12px 30px; font-size: 15px; border-radius: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
             ⬆️ Back to Top (返回顶部)
         </button>
     </div>
@@ -158,9 +144,18 @@
 </script>
 
 <script>
-    Chart.register(ChartDataLabels);
-
     if (!window.globalStoreCache) window.globalStoreCache = { userDecisions: {} };
+</script>
+
+<script>
+    // OFF-LINE PROTECTION: Prevents freeze if Chart.js cannot load
+    try {
+        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+            Chart.register(ChartDataLabels);
+        }
+    } catch (e) {
+        console.warn("Charts failed to load, running in table-only mode.");
+    }
 
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
     globalStore.userDecisions = window.globalStoreCache.userDecisions;
@@ -168,6 +163,26 @@
     let chartInstances = [];
     let processedBarcodes = new Set();
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
+
+    // OFFICIAL CUSTOM PRODUCTION LINE COLORS
+    function getLineColor(lineStr) {
+        if (lineStr.startsWith("W1")) return "#f4b183"; // Orange
+        if (lineStr.startsWith("W2")) return "#4472c4"; // Blue
+        if (lineStr.startsWith("W3")) return "#ffff00"; // Yellow
+        if (lineStr.startsWith("W4")) return "#92d050"; // Green
+        return "#9bc2e6"; 
+    }
+    
+    function getSubHeaderColor(lineStr) {
+        if (lineStr.startsWith("W1")) return "#fce4d6"; // Light Peach
+        if (lineStr.startsWith("W2")) return "#d9e1f2"; // Light Blue
+        if (lineStr.startsWith("W3")) return "#fff2cc"; // Light Yellow
+        if (lineStr.startsWith("W4")) return "#e2efda"; // Light Green
+        return "#ddebf7"; 
+    }
+
+    function getExcelColor(lineStr) { return getLineColor(lineStr).replace('#', ''); }
+    function getExcelSubColor(lineStr) { return getSubHeaderColor(lineStr).replace('#', ''); }
 
     function resetDashboardState() {
         globalStore.dates = [];
@@ -316,11 +331,15 @@
 
     function loadFromCloudAndRender() {
         document.getElementById('reportDate').textContent = "Status: Syncing with cloud...";
-        fetch(FIREBASE_URL, { cache: "no-store" })
-            .then(res => {
-                if (!res.ok) throw new Error("Firebase Read Failed: " + res.status);
-                return res.json();
-            })
+        
+        // Timeout to gracefully fallback if local execution blocks the fetch request completely
+        const fetchTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Cloud timeout (Likely running offline/locally)")), 4000));
+        const fetchRequest = fetch(FIREBASE_URL, { cache: "no-store" }).then(res => {
+            if (!res.ok) throw new Error("Firebase Read Failed: " + res.status);
+            return res.json();
+        });
+
+        Promise.race([fetchRequest, fetchTimeout])
             .then(data => {
                 resetDashboardState();
                 if (data && typeof data === 'object') {
@@ -335,8 +354,9 @@
                 }
             })
             .catch(err => {
-                console.error(err);
-                updateDropdownAndRender("Status: Ready (Running in Local Mode - Cloud Sync Bypassed)");
+                console.warn(err);
+                document.getElementById('reportDate').style.color = "var(--warn)";
+                updateDropdownAndRender("Status: Ready (Running Local Offline Mode - Cloud Blocked)");
             });
     }
 
@@ -366,31 +386,36 @@
                 });
                 
                 document.getElementById('reportDate').textContent = "Status: Saving backup to Database...";
-                
-                const uploadPayload = {
-                    uploadTime: new Date().toISOString(),
-                    rawData: sanitizedData
-                };
+                const uploadPayload = { uploadTime: new Date().toISOString(), rawData: sanitizedData };
 
-                fetch(FIREBASE_URL, {
+                // Handle local execution gracefully without freezing
+                const uploadTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Local Execution Timeout")), 3000));
+                const uploadRequest = fetch(FIREBASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(uploadPayload)
-                }).then(response => {
+                });
+
+                Promise.race([uploadRequest, uploadTimeout])
+                .then(response => {
                     if (!response.ok) throw new Error("Firebase Write Failed");
                     return response.json();
-                }).then(result => {
+                })
+                .then(result => {
                     console.log("Successfully saved to Firebase with ID:", result.name);
                     loadFromCloudAndRender(); 
-                }).catch(err => {
+                })
+                .catch(err => {
+                    console.warn(err);
                     alert("Warning: Could not connect to Firebase Cloud (Running locally or blocked). Uploading straight to your screen.");
                     resetDashboardState();
                     parseMESData(sanitizedData);
+                    document.getElementById('reportDate').style.color = "var(--warn)";
                     updateDropdownAndRender("Status: Local Data Loaded Successfully (Cloud Bypassed)");
                 });
             } catch (error) {
                 console.error(error);
-                alert('Error processing the file. If you are selecting the file directly from Google Drive or OneDrive, please move it to your Desktop first. Make sure it is a standard MES Excel export.');
+                alert('Error processing the file. If you selected the file from Google Drive, please copy it to your Desktop first and re-upload.');
                 document.getElementById('reportDate').textContent = "Status: Error parsing file.";
             } finally {
                 event.target.value = '';
@@ -408,15 +433,13 @@
         if(!confirm("⚠️ WARNING: This will permanently DELETE ALL data in the cloud for ALL users. Are you sure?")) return;
         
         document.getElementById('reportDate').textContent = "Status: Deleting all cloud data...";
-        fetch(FIREBASE_URL, { method: 'DELETE' })
-            .then(() => {
-                alert("All cloud data has been successfully cleared!");
-                location.reload();
-            })
-            .catch(err => {
-                alert("Failed to delete data. Check network connection.");
-                document.getElementById('reportDate').textContent = "Status: Delete Failed";
-            });
+        fetch(FIREBASE_URL, { method: 'DELETE' }).then(() => {
+            alert("All cloud data has been successfully cleared!");
+            location.reload();
+        }).catch(err => {
+            alert("Failed to delete data. Check network connection.");
+            document.getElementById('reportDate').textContent = "Status: Delete Failed";
+        });
     });
 
     document.getElementById('clearDateBtn').addEventListener('click', function() {
@@ -428,9 +451,7 @@
             if (pass !== null) alert("Incorrect password. Permission denied.");
             return;
         }
-        
         if(!confirm(`⚠️ Are you sure you want to completely delete all cloud records for ${selDate}?`)) return;
-        
         document.getElementById('reportDate').textContent = `Status: Deleting data for ${selDate}...`;
         
         fetch(FIREBASE_URL, { cache: "no-store" })
@@ -440,17 +461,14 @@
                     alert("Cloud is already empty.");
                     return location.reload();
                 }
-                
                 let newData = {};
                 let hasChanges = false;
-                
                 for (let pushId in data) {
                     let record = data[pushId];
                     if (record && record.rawData) {
                         let filteredRaw = record.rawData.filter(row => {
                             let timeRaw = row['Cut Film Time'];
                             if (!timeRaw) return true; 
-                            
                             let timeStr = String(timeRaw || '').trim();
                             let dateObj;
                             if (timeStr.includes('T') && timeStr.includes('Z')) {
@@ -464,25 +482,16 @@
                                 dateObj = new Date(timeStr.replace(/-/g, '/'));
                             }
                             if (isNaN(dateObj.getTime())) return true;
-                            
                             let hour = dateObj.getHours();
                             let rDateObj = new Date(dateObj);
                             if (hour < 8) rDateObj.setDate(rDateObj.getDate() - 1);
-                            
                             let rDate = `${rDateObj.getFullYear()}-${String(rDateObj.getMonth()+1).padStart(2,'0')}-${String(rDateObj.getDate()).padStart(2,'0')}`;
-                            
                             return rDate !== selDate; 
                         });
-                        
-                        if (filteredRaw.length > 0) {
-                            newData[pushId] = { uploadTime: record.uploadTime, rawData: filteredRaw };
-                        }
-                        if (filteredRaw.length !== record.rawData.length) {
-                            hasChanges = true;
-                        }
+                        if (filteredRaw.length > 0) newData[pushId] = { uploadTime: record.uploadTime, rawData: filteredRaw };
+                        if (filteredRaw.length !== record.rawData.length) hasChanges = true;
                     }
                 }
-                
                 if (hasChanges || Object.keys(newData).length === 0) {
                     fetch(FIREBASE_URL, {
                         method: 'PUT',
@@ -496,17 +505,120 @@
                     alert(`No data found for ${selDate} in the cloud.`);
                     document.getElementById('reportDate').textContent = "Status: Data Loaded Successfully from Firebase";
                 }
-            })
-            .catch(err => {
+            }).catch(err => {
                 alert("Failed to connect to cloud database.");
                 document.getElementById('reportDate').textContent = "Status: Ready (Cloud Error)";
             });
     });
 
     document.getElementById('dateSelector').addEventListener('change', renderDashboard);
-    document.querySelectorAll('#lineToggles input').forEach(cb => {
-        cb.addEventListener('change', renderDashboard);
-    });
+    document.querySelectorAll('#lineToggles input').forEach(cb => { cb.addEventListener('change', renderDashboard); });
+
+    function generateTableHTML(line, lineData, selectedDate) {
+        if (!lineData) return '';
+        const intervals = globalStore.intervals;
+        let rowsHtml = '';
+        lineData.shifts.forEach((shift, index) => {
+            const time = intervals[index];
+            let desc = Object.entries(shift.defects).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => {
+                let uniqueWS = [...new Set(v.filter(w => w !== ''))].map(w => 'WS' + w).join(',');
+                let wsStr = uniqueWS ? ` ${uniqueWS}` : '';
+                return `${k}${wsStr} (${v.length})`;
+            }).join(', ');
+            if (desc === '') desc = '-';
+            const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
+            const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
+            
+            let displayModel = shift.total > 0 ? (shift.model || '') : '';
+            rowsHtml += `<tr>${dateCell}<td>${time}</td><td>${displayModel}</td><td>${shift.total}</td><td>${shift.a}</td><td>${shift.n}</td><td>${shift.f}</td><td>${aGradeRate}</td><td class="desc">${desc}</td></tr>`;
+        });
+        return `<div class="table-container" style="margin-bottom: 24px; padding: 10px; background: var(--surface);">
+            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
+                <table class="excel-table" style="width: 100%;">
+                    <thead>
+                        <tr class="title-row"><th colspan="9" style="background-color: ${getLineColor(line)};">${line} 检验情况汇总 (Inspection Summary)</th></tr>
+                        <tr class="header-row" style="background-color: ${getSubHeaderColor(line)};">
+                            <th style="background-color: ${getSubHeaderColor(line)};">日期<br>Date</th><th style="background-color: ${getSubHeaderColor(line)};">时间<br>Time</th><th style="background-color: ${getSubHeaderColor(line)};">型号<br>Model</th>
+                            <th style="background-color: ${getSubHeaderColor(line)};">总产出<br>Total Output</th><th style="background-color: ${getSubHeaderColor(line)};">A</th><th style="background-color: ${getSubHeaderColor(line)};">注意<br>Attention</th><th style="background-color: ${getSubHeaderColor(line)};">F</th>
+                            <th style="background-color: ${getSubHeaderColor(line)};">A品率 (%)<br>Peratusan A grade</th><th style="width: 50%; background-color: ${getSubHeaderColor(line)};">判注意描述 Attention Abnormality Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
+    function generateChartsHTML(line) {
+        return `<div class="table-container" style="margin-bottom: 24px; padding: 10px; background: var(--surface);">
+            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
+                <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="card" style="width: 100%; box-sizing: border-box;"><h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2><div class="cv"><canvas id="trendChart_${line}"></canvas></div></div>
+                    <div class="card" style="width: 100%; box-sizing: border-box;"><h2>${line} - Top Defects Pareto (不良排行)</h2><div class="cv"><canvas id="paretoChart_${line}"></canvas></div></div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function generateSummaryHTML(line, lineData) {
+        const intervals = globalStore.intervals;
+        let uniqueRemarks = new Set();
+        lineData.shifts.forEach(s => { Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r)); });
+        let remarkList = Array.from(uniqueRemarks).sort();
+
+        let shiftColsHTML = intervals.map(t => `<th style="background-color: ${getSubHeaderColor(line)};">${t}</th>`).join('');
+        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
+        let nRow = `<tr><td>注意 (Attention)</td>`;
+        let fRow = `<tr><td>F</td>`;
+        let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
+        
+        lineData.shifts.forEach(s => { aRow += `<td>${s.a}</td>`; aTot += s.a; nRow += `<td>${s.n}</td>`; nTot += s.n; fRow += `<td>${s.f}</td>`; fTot += s.f; overallTot += s.total; });
+        
+        let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`; nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`; fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
+
+        let remarkRowsHTML = '';
+        if (remarkList.length === 0) {
+            remarkRowsHTML = `<tr><td>Station Remarks<br>(备注)</td><td>-</td>` + intervals.map(t => `<td>0</td>`).join('') + `<td><b>0</b> (0.00%)</td></tr>`;
+        } else {
+            remarkList.forEach((rm, idx) => {
+                let rHtml = `<tr>`;
+                if (idx === 0) rHtml += `<td rowspan="${remarkList.length}">Station Remarks<br>(备注)</td>`;
+                rHtml += `<td>${rm}</td>`;
+                let rmTot = 0;
+                lineData.shifts.forEach(s => { let c = s.stationRemarks[rm] || 0; rHtml += `<td>${c}</td>`; rmTot += c; });
+                let rPct = overallTot ? ((rmTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+                rHtml += `<td><b>${rmTot}</b> (${rPct})</td></tr>`;
+                remarkRowsHTML += rHtml;
+            });
+        }
+
+        return `<div class="table-container" style="margin-bottom: 32px; padding: 10px; background: var(--surface);">
+            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
+                <div class="grid" style="margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="card" style="width: 100%; box-sizing: border-box;">
+                        <h2>${line} - Overall Grade Breakdown (总评占比)</h2>
+                        <div class="cv" style="height: 350px;"><canvas id="gradePie_${line}"></canvas></div>
+                    </div>
+                    <div class="card" style="width: 100%; box-sizing: border-box;">
+                        <h2>${line} - Station Remarks Breakdown (备注占比)</h2>
+                        <div class="cv" style="height: 350px;"><canvas id="remarkPie_${line}"></canvas></div>
+                    </div>
+                </div>
+                <table class="excel-table" style="width: 100%;">
+                    <thead>
+                        <tr class="title-row"><th colspan="${2 + intervals.length + 1}" style="background-color: ${getLineColor(line)};">${line} - Overall Summary Details (总体汇总详情)</th></tr>
+                        <tr class="header-row" style="background-color: ${getSubHeaderColor(line)};">
+                            <th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Category (类别)</th><th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Item (项目)</th>${shiftColsHTML}<th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Total (总计)</th>
+                        </tr>
+                    </thead>
+                    <tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody>
+                </table>
+            </div>
+        </div>`;
+    }
 
     function renderDashboard() {
         const selectedDate = document.getElementById('dateSelector').value;
@@ -548,6 +660,7 @@
                 lineData = { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
             }
             
+            // Smart Auto-Fill Logic
             let lastActiveIndex = -1;
             for(let i = 0; i < 6; i++) {
                 let shiftTotal = 0;
@@ -557,81 +670,55 @@
             
             let allModels = new Set();
             lineData.shifts.forEach(s => Object.keys(s.models).forEach(m => allModels.add(m)));
-            let modelArray = Array.from(allModels);
+            let modelArray = Array.from(allModels).filter(m => m !== "" && m !== "Unknown");
             
-            let splitTables = false;
-            let forcedModel = null;
-            
-            if (modelArray.length > 1) {
-                let dKey = `conflict_${selectedDate}_${line}`;
-                let dec = globalStore.userDecisions[dKey];
-                if (!dec) {
-                    let msg = `Line ${line} ran multiple models on ${selectedDate}: ${modelArray.join(', ')}.\nType 'BOTH' to create separate tables, or type ONE model name to merge them:`;
-                    dec = prompt(msg, "BOTH");
-                    dec = dec ? dec.trim() : "BOTH";
-                    globalStore.userDecisions[dKey] = dec;
-                }
-                if (dec.toUpperCase() === 'BOTH') splitTables = true;
-                else forcedModel = dec;
-            } else if (modelArray.length === 1) {
-                forcedModel = modelArray[0];
-            } else {
-                forcedModel = ""; 
+            let forcedModel = "";
+            if (modelArray.length > 0) {
+                forcedModel = modelArray[0]; 
             }
             
-            let tablesNeeded = splitTables ? modelArray : [forcedModel];
+            let tableObj = {
+                title: line,
+                model: forcedModel,
+                shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: forcedModel }))
+            };
             
-            tablesNeeded.forEach(targetModel => {
-                let tableObj = {
-                    title: splitTables ? `${line} (${targetModel})` : line,
-                    model: targetModel,
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: targetModel }))
-                };
+            let prevModelTracker = forcedModel;
+            
+            for (let i = 0; i < 6; i++) {
+                let rawShift = lineData.shifts[i];
+                let tShift = tableObj.shifts[i];
                 
-                let prevModelTracker = targetModel;
+                let modelsInShift = Object.keys(rawShift.models).filter(m => m !== "" && m !== "Unknown");
                 
-                for (let i = 0; i < 6; i++) {
-                    let rawShift = lineData.shifts[i];
-                    let tShift = tableObj.shifts[i];
-                    
-                    let modelsInShift = Object.keys(rawShift.models);
-                    let modelsToSum = splitTables ? (rawShift.models[targetModel] ? [targetModel] : []) : modelsInShift;
-                    
-                    if (modelsToSum.length === 0) {
-                        if (i < lastActiveIndex) {
-                            let dKey = `gap_${selectedDate}_${line}_${i}_${targetModel}`;
-                            let shiftName = globalStore.intervals[i];
-                            if (!globalStore.userDecisions[dKey]) {
-                                let ans = prompt(`Line ${line} has 0 output during ${shiftName} on ${selectedDate}.\nWhat model was running? (Leave blank to use '${prevModelTracker}')`, prevModelTracker);
-                                globalStore.userDecisions[dKey] = ans ? ans.trim() : prevModelTracker;
-                            }
-                            tShift.model = globalStore.userDecisions[dKey];
-                            prevModelTracker = tShift.model;
-                        } else {
-                            tShift.model = "";
-                        }
+                if (modelsInShift.length === 0) {
+                    if (i < lastActiveIndex) {
+                        tShift.model = prevModelTracker; // No popup, silent gap fill
                     } else {
-                        modelsToSum.forEach(m => {
-                            let md = rawShift.models[m];
-                            tShift.total += md.total;
-                            tShift.a += md.a; tShift.n += md.n; tShift.f += md.f;
-                            for (let d in md.defects) {
-                                if(!tShift.defects[d]) tShift.defects[d] = [];
-                                tShift.defects[d].push(...md.defects[d]);
-                            }
-                            for (let r in md.stationRemarks) {
-                                tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
-                            }
-                        });
-                        prevModelTracker = splitTables ? targetModel : (modelsToSum[0] || prevModelTracker);
-                        tShift.model = prevModelTracker;
+                        tShift.model = ""; // Future shift
                     }
+                } else {
+                    let activeModel = modelsInShift[0];
+                    let md = rawShift.models[activeModel];
+                    tShift.total += md.total;
+                    tShift.a += md.a;
+                    tShift.n += md.n;
+                    tShift.f += md.f;
+                    for (let d in md.defects) {
+                        if(!tShift.defects[d]) tShift.defects[d] = [];
+                        tShift.defects[d].push(...md.defects[d]);
+                    }
+                    for (let r in md.stationRemarks) {
+                        tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
+                    }
+                    prevModelTracker = activeModel;
+                    tShift.model = prevModelTracker;
                 }
-                finalTablesToRender.push(tableObj);
-            });
+            }
+            finalTablesToRender.push(tableObj);
         });
 
-        if (finalTablesToRender.length === 0) {
+        if (finalTablesToRender.every(t => t.shifts.every(s => s.total === 0))) {
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
@@ -647,6 +734,9 @@
         finalTablesToRender.forEach(tableItem => {
             let line = tableItem.title;
             let lineData = tableItem;
+            
+            let lineTotal = lineData.shifts.reduce((sum, s) => sum + s.total, 0);
+            if(lineTotal === 0) return; // Skip totally empty lines
             
             tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, lineData, selectedDate));
             chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
@@ -668,7 +758,7 @@
             }));
 
             const ctxTrend = document.getElementById(`trendChart_${line}`);
-            if (ctxTrend) {
+            if (ctxTrend && typeof Chart !== 'undefined') {
                 chartInstances.push(new Chart(ctxTrend.getContext('2d'), {
                     type: 'bar',
                     data: { labels: globalStore.intervals, datasets: datasets },
@@ -694,7 +784,7 @@
             });
 
             const ctxPareto = document.getElementById(`paretoChart_${line}`);
-            if (ctxPareto) {
+            if (ctxPareto && typeof Chart !== 'undefined') {
                 chartInstances.push(new Chart(ctxPareto.getContext('2d'), {
                     type: 'bar',
                     data: {
@@ -733,7 +823,7 @@
             };
 
             const ctxGrade = document.getElementById(`gradePie_${line}`);
-            if (ctxGrade) {
+            if (ctxGrade && typeof Chart !== 'undefined') {
                 chartInstances.push(new Chart(ctxGrade.getContext('2d'), {
                     type: 'pie',
                     data: {
@@ -756,7 +846,7 @@
             const remarkColors = remarkKeys.map((_, i) => colors[i % colors.length]);
 
             const ctxRemark = document.getElementById(`remarkPie_${line}`);
-            if (ctxRemark && remarkKeys.length > 0) {
+            if (ctxRemark && remarkKeys.length > 0 && typeof Chart !== 'undefined') {
                 chartInstances.push(new Chart(ctxRemark.getContext('2d'), {
                     type: 'pie',
                     data: {
@@ -769,97 +859,27 @@
         });
     }
 
-    function generateTableHTML(line, lineData, selectedDate) {
-        if (!lineData) return '';
-        const intervals = globalStore.intervals;
-        let rowsHtml = '';
-        lineData.shifts.forEach((shift, index) => {
-            const time = intervals[index];
-            let desc = Object.entries(shift.defects).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => {
-                let uniqueWS = [...new Set(v.filter(w => w !== ''))].map(w => 'WS' + w).join(',');
-                let wsStr = uniqueWS ? ` ${uniqueWS}` : '';
-                return `${k}${wsStr} (${v.length})`;
-            }).join(', ');
-            if (desc === '') desc = '-';
-            const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
-            const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
-            
-            let displayModel = shift.total > 0 ? (shift.model || '') : '';
-            
-            rowsHtml += `<tr>${dateCell}<td>${time}</td><td>${displayModel}</td><td>${shift.total}</td><td>${shift.a}</td><td>${shift.n}</td><td>${shift.f}</td><td>${aGradeRate}</td><td class="desc">${desc}</td></tr>`;
-        });
-        return `<div class="table-container" style="margin-bottom: 24px;"><table class="excel-table" style="width: 100%; min-width: 1200px;"><thead><tr class="title-row"><th colspan="9">${line} 检验情况汇总 (Inspection Summary)</th></tr><tr class="header-row"><th>日期<br>Date</th><th>时间<br>Time</th><th>型号<br>Model</th><th>总产出<br>Total Output</th><th>A</th><th>注意<br>Attention</th><th>F</th><th>A品率 (%)<br>Peratusan A grade</th><th style="width: 50%;">判注意描述 Attention Abnormality Description</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
-    }
-
-    function generateChartsHTML(line) {
-        return `<div class="grid" style="margin-bottom: 24px;"><div class="card"><h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2><div class="cv"><canvas id="trendChart_${line}"></canvas></div></div><div class="card"><h2>${line} - Top Defects Pareto (不良排行)</h2><div class="cv"><canvas id="paretoChart_${line}"></canvas></div></div></div>`;
-    }
-
-    function generateSummaryHTML(line, lineData) {
-        const intervals = globalStore.intervals;
-        let uniqueRemarks = new Set();
-        lineData.shifts.forEach(s => { Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r)); });
-        let remarkList = Array.from(uniqueRemarks).sort();
-
-        let shiftColsHTML = intervals.map(t => `<th>${t}</th>`).join('');
-        
-        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
-        let nRow = `<tr><td>注意 (Attention)</td>`;
-        let fRow = `<tr><td>F</td>`;
-        let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
-        
-        lineData.shifts.forEach(s => {
-            aRow += `<td>${s.a}</td>`; aTot += s.a;
-            nRow += `<td>${s.n}</td>`; nTot += s.n;
-            fRow += `<td>${s.f}</td>`; fTot += s.f;
-            overallTot += s.total;
-        });
-        
-        let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`;
-        nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`;
-        fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
-
-        let remarkRowsHTML = '';
-        if (remarkList.length === 0) {
-            remarkRowsHTML = `<tr><td>Station Remarks<br>(备注)</td><td>-</td>` + intervals.map(t => '<td>0</td>').join('') + `<td><b>0</b> (0.00%)</td></tr>`;
-        } else {
-            remarkList.forEach((rm, idx) => {
-                let rHtml = `<tr>`;
-                if (idx === 0) rHtml += `<td rowspan="${remarkList.length}">Station Remarks<br>(备注)</td>`;
-                rHtml += `<td>${rm}</td>`;
-                let rmTot = 0;
-                lineData.shifts.forEach(s => {
-                    let c = s.stationRemarks[rm] || 0;
-                    rHtml += `<td>${c}</td>`;
-                    rmTot += c;
-                });
-                let rPct = overallTot ? ((rmTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-                rHtml += `<td><b>${rmTot}</b> (${rPct})</td></tr>`;
-                remarkRowsHTML += rHtml;
-            });
-        }
-
-        return `<div style="margin-bottom: 32px;"><div class="grid" style="margin-bottom: 16px;"><div class="card"><h2>${line} - Overall Grade Breakdown (总评占比)</h2><div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div></div><div class="card"><h2>${line} - Station Remarks Breakdown (备注占比)</h2><div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div></div></div><div class="table-container"><table class="excel-table" style="width: 100%; min-width: 1200px;"><thead><tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr><tr class="header-row"><th style="width: 15%;">Category (类别)</th><th style="width: 15%;">Item (项目)</th>${shiftColsHTML}<th style="width: 15%;">Total (总计)</th></tr></thead><tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody></table></div></div>`;
-    }
-
+    // STRICT 1400PX CAPTURE ENGINE
     async function captureElement(elementId) {
         const target = document.getElementById(elementId);
         const printContainer = document.createElement('div');
         printContainer.style.position = 'absolute'; printContainer.style.top = '-9999px'; printContainer.style.left = '0';
-        printContainer.style.width = '1400px'; printContainer.style.background = '#f1f1ee'; printContainer.style.padding = '20px'; printContainer.style.zIndex = '-1';
+        printContainer.style.width = '1420px'; printContainer.style.background = '#f1f1ee'; printContainer.style.padding = '10px'; printContainer.style.zIndex = '-1';
         
         const clone = target.cloneNode(true);
-        clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none'; 
-        clone.style.width = '1400px'; clone.style.minWidth = '1400px'; 
+        clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none';
         
         const scrollableContainers = clone.querySelectorAll('.table-container');
-        scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.width = '100%'; c.style.border = 'none'; });
-        
+        scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.border = 'none'; c.style.width = '1400px'; c.style.minWidth = '1400px'; c.style.maxWidth = '1400px'; });
+
         const tables = clone.querySelectorAll('.excel-table');
-        tables.forEach(t => { t.style.width = '100%'; t.style.minWidth = '1200px'; t.style.border = '1px solid #141413'; });
+        tables.forEach(t => { t.style.width = '1400px'; t.style.minWidth = '1400px'; t.style.maxWidth = '1400px'; t.style.border = '1px solid #141413'; });
+
+        const grids = clone.querySelectorAll('.grid');
+        grids.forEach(g => { g.style.width = '1400px'; g.style.display = 'flex'; g.style.justifyContent = 'space-between'; });
+        
+        const cards = clone.querySelectorAll('.card');
+        cards.forEach(c => { c.style.width = '670px'; c.style.flex = 'none'; });
 
         const originalCanvases = target.querySelectorAll('canvas');
         const clonedCanvases = clone.querySelectorAll('canvas');
@@ -874,7 +894,7 @@
         
         printContainer.appendChild(clone);
         document.body.appendChild(printContainer);
-        try { return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1400 }); } finally { document.body.removeChild(printContainer); }
+        try { return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1420 }); } finally { document.body.removeChild(printContainer); }
     }
 
     async function handleCopy(elementId, btn) {
@@ -907,7 +927,12 @@
                 } else {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                     btn.textContent = '✅ Downloaded!';
                 }
                 setTimeout(() => btn.textContent = originalText, 2500);
@@ -948,70 +973,36 @@
             const checkboxes = document.querySelectorAll('#lineToggles input[type="checkbox"]');
             const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
-            let finalTablesToExport = [];
-            selectedLines.forEach(baseLine => {
-                let lineData = activeData[baseLine] || { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
-                
-                let lastActiveIndex = -1;
-                for(let i = 0; i < 6; i++) {
-                    let shiftTotal = 0;
-                    Object.values(lineData.shifts[i].models).forEach(m => shiftTotal += m.total);
-                    if (shiftTotal > 0) lastActiveIndex = i;
-                }
+            const borderAll = {
+                top: { style: "thin", color: { rgb: "000000" } },
+                bottom: { style: "thin", color: { rgb: "000000" } },
+                left: { style: "thin", color: { rgb: "000000" } },
+                right: { style: "thin", color: { rgb: "000000" } }
+            };
 
-                let allModels = new Set();
-                lineData.shifts.forEach(s => Object.keys(s.models).forEach(m => allModels.add(m)));
-                let modelArray = Array.from(allModels);
-                
-                let splitTables = false; let forcedModel = null;
-                if (modelArray.length > 1) {
-                    let dec = globalStore.userDecisions[`conflict_${selectedDate}_${baseLine}`] || "BOTH";
-                    if (dec.toUpperCase() === 'BOTH') splitTables = true; else forcedModel = dec;
-                } else if (modelArray.length === 1) forcedModel = modelArray[0];
-                else forcedModel = "";
-
-                let tablesNeeded = splitTables ? modelArray : [forcedModel];
-                
-                tablesNeeded.forEach(targetModel => {
-                    let tableObj = { title: splitTables ? `${baseLine} (${targetModel})` : baseLine, model: targetModel, shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: targetModel })) };
-                    let prevModelTracker = targetModel;
-                    
-                    for (let i = 0; i < 6; i++) {
-                        let rawShift = lineData.shifts[i], tShift = tableObj.shifts[i];
-                        let modelsInShift = Object.keys(rawShift.models);
-                        let modelsToSum = splitTables ? (rawShift.models[targetModel] ? [targetModel] : []) : modelsInShift;
-                        
-                        if (modelsToSum.length === 0) {
-                            if (i < lastActiveIndex) {
-                                tShift.model = globalStore.userDecisions[`gap_${selectedDate}_${baseLine}_${i}_${targetModel}`] || prevModelTracker;
-                                prevModelTracker = tShift.model;
-                            } else {
-                                tShift.model = "";
-                            }
-                        } else {
-                            modelsToSum.forEach(m => {
-                                let md = rawShift.models[m];
-                                tShift.total += md.total; tShift.a += md.a; tShift.n += md.n; tShift.f += md.f;
-                                for (let d in md.defects) { if(!tShift.defects[d]) tShift.defects[d] = []; tShift.defects[d].push(...md.defects[d]); }
-                                for (let r in md.stationRemarks) tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
-                            });
-                            prevModelTracker = splitTables ? targetModel : (modelsToSum[0] || prevModelTracker);
-                            tShift.model = prevModelTracker;
-                        }
-                    }
-                    finalTablesToExport.push(tableObj);
-                });
-            });
-
-            const borderAll = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
-
-            finalTablesToExport.forEach(tableItem => {
-                let line = tableItem.title;
-                let lineData = tableItem;
+            selectedLines.forEach(line => {
+                if (!activeData[line]) return;
+                const lineData = activeData[line];
                 let ws_data = [];
-                ws_data.push([{ v: `${line} 检验情况汇总 (Inspection Summary)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
-                let headers = ["日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", "判注意描述 Attention Abnormality Description"];
-                ws_data.push(headers.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } })));
+                
+                let titleRow = [];
+                for(let i = 0; i < 9; i++) {
+                    titleRow.push({
+                        v: i === 0 ? `${line} 检验情况汇总 (Inspection Summary)` : "",
+                        s: { fill: { fgColor: { rgb: getExcelColor(line) } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll }
+                    });
+                }
+                ws_data.push(titleRow);
+
+                let headers = [
+                    "日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", 
+                    "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", 
+                    "判注意描述 Attention Abnormality Description"
+                ];
+                let headerRow = headers.map(h => ({
+                    v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll }
+                }));
+                ws_data.push(headerRow);
 
                 lineData.shifts.forEach((shift, index) => {
                     const time = globalStore.intervals[index];
@@ -1021,23 +1012,25 @@
                         return `${k}${wsStr} (${v.length})`;
                     }).join(', ');
                     if (desc === '') desc = '-';
+                    
                     const aGradeRate = shift.total > 0 ? (shift.a / shift.total) : 0;
+                    const dateCell = index === 0 ? selectedDate : "";
                     
-                    let displayModel = shift.total > 0 ? (shift.model || '') : '';
+                    let dataArray = [dateCell, time, shift.total > 0 ? (shift.model || "") : "", shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
                     
-                    let dataArray = [index === 0 ? selectedDate : "", time, displayModel, shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
-                    ws_data.push(dataArray.map((val, cIdx) => {
+                    let formattedRow = dataArray.map((val, cIdx) => {
                         let cell = { v: val, s: { alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } };
                         if (cIdx === 7 && typeof val === 'number') { cell.t = 'n'; cell.z = "0.00%"; }
-                        if (cIdx === 8) cell.s.alignment.horizontal = "left";
+                        if (cIdx === 8) { cell.s.alignment.horizontal = "left"; }
                         return cell;
-                    }));
+                    });
+                    ws_data.push(formattedRow);
                 });
 
                 ws_data.push([]); 
-                ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
+                ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: getExcelColor(line) } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
                 let sumHeaders = ["Category (类别)", "Item (项目)", ...globalStore.intervals, "Total (总计)"];
-                ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
+                ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
 
                 let aRow = [{v:"Comprehensive Grade (总评)"}, {v:"A"}];
                 let nRow = [{v:""}, {v:"注意 (Attention)"}];
@@ -1080,6 +1073,7 @@
                 ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
                 XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
             });
+
             XLSX.writeFile(wb, `QC_Report_${selectedDate}.xlsx`);
             btn.textContent = '✅ Downloaded!';
             setTimeout(() => btn.textContent = originalText, 2500);
