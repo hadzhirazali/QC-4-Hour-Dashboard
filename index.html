@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -81,63 +82,42 @@
             <div style="display: flex; gap: 8px;">
                 <button id="clearDateBtn" class="upload-btn btn-warn">🗑️ Clear Selected Date</button>
                 <button id="clearAllBtn" class="upload-btn btn-danger">🗑️ Clear All Cloud Data</button>
-                <button id="copyMessageBtn" class="upload-btn" style="background: #fff; border-color: #141413; color: #141413;">📋 Copy WeChat Message</button>
+                <button id="copyMessageBtn" class="upload-btn" style="background: #fff; border-color: #141413; color: #141413;">
+                    📋 Copy WeChat Message
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Empty Message -->
     <div id="noDataMessage" style="display: none; color: var(--ink3); text-align: center; padding: 20px;">
         No data available for the selected date and workstation combination.
     </div>
 
-    <!-- TABLES SECTION (Top) -->
     <div id="tablesSection" style="display: none;">
-        <!-- BUTTONS AT THE TOP -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
-                📊 Download Excel (下载Excel)
-            </button>
-            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Tables Image (Mobile)
-            </button>
-            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Tables (PC)
-            </button>
+            <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
+            <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Tables Image (Mobile)</button>
+            <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Tables (PC)</button>
         </div>
         <div id="tablesContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- CHARTS SECTION (Bottom) -->
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
-        <!-- BUTTONS AT THE TOP OF THE CHARTS SECTION -->
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">
-                📊 Download Excel (下载Excel)
-            </button>
-            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Charts Image (Mobile)
-            </button>
-            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Charts (PC)
-            </button>
+            <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
+            <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Charts Image (Mobile)</button>
+            <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Charts (PC)</button>
         </div>
         <div id="chartsContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
 
-    <!-- OVERALL SUMMARY SECTION (Bottom) -->
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
-            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">
-                📤 Share Summary Image (Mobile)
-            </button>
-            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">
-                📋 Copy Summary (PC)
-            </button>
+            <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Summary Image (Mobile)</button>
+            <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Summary (PC)</button>
         </div>
         <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
-
 </div>
 
 <script id="qc-data" type="application/json">
@@ -149,20 +129,42 @@
 </script>
 
 <script>
+    Chart.register(ChartDataLabels);
+
+    if (!window.globalStoreCache) window.globalStoreCache = { userDecisions: {} };
+
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
-    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
+    globalStore.userDecisions = window.globalStoreCache.userDecisions;
+    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64', '#17673f', '#a14a00', '#52514e'];
     let chartInstances = [];
     let processedBarcodes = new Set();
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
-    // EXACT PARSER FROM YOUR WORKING 27.10.2026 FILE
+    function resetDashboardState() {
+        globalStore.dates = [];
+        globalStore.data_by_date = {};
+        processedBarcodes.clear();
+        if (chartInstances && chartInstances.length > 0) {
+            chartInstances.forEach(chart => { if(chart) chart.destroy(); });
+        }
+        chartInstances = [];
+    }
+
     function parseMESData(dataArray) {
         if (!Array.isArray(dataArray)) return;
+        
+        let lastSeenModel = {}; 
+        
+        dataArray.sort((a, b) => {
+            let ta = new Date(a['Cut Film Time'] || 0).getTime();
+            let tb = new Date(b['Cut Film Time'] || 0).getTime();
+            return ta - tb;
+        });
         
         dataArray.forEach(rawRow => {
             const row = {};
             for (let k in rawRow) {
-                let safeKey = String(k).trim().replace(/[.#$\[\]/]/g, '_');
+                let safeKey = String(k).trim().replace(/[.#$\[\]\/]/g, '_');
                 row[safeKey] = rawRow[k];
             }
             
@@ -172,16 +174,13 @@
             
             if (!line || !timeRaw || !barcode) return;
             if (processedBarcodes.has(barcode)) return;
-            
             processedBarcodes.add(barcode);
             
             let dateObj;
             if (timeRaw instanceof Date) {
-                dateObj = new Date(timeRaw.getUTCFullYear(), timeRaw.getUTCMonth(), timeRaw.getUTCDate(), timeRaw.getUTCHours(), timeRaw.getUTCMinutes(), timeRaw.getUTCSeconds());
+                dateObj = new Date(timeRaw.getTime());
             } else if (typeof timeRaw === 'number') {
-                let epoch = Math.round((timeRaw - 25569) * 86400 * 1000);
-                let tempDate = new Date(epoch);
-                dateObj = new Date(tempDate.getUTCFullYear(), tempDate.getUTCMonth(), tempDate.getUTCDate(), tempDate.getUTCHours(), tempDate.getUTCMinutes(), tempDate.getUTCSeconds());
+                dateObj = new Date(Math.round((timeRaw - 25569) * 86400 * 1000));
             } else {
                 let timeStr = String(timeRaw || '').trim();
                 if (timeStr.includes('T') && timeStr.includes('Z')) {
@@ -195,8 +194,14 @@
                     dateObj = new Date(timeStr.replace(/-/g, '/'));
                 }
             }
-            
             if (isNaN(dateObj.getTime())) return;
+            
+            let currentModel = String(row['Specification'] || row['Model'] || "").trim();
+            if (currentModel === "") {
+                currentModel = lastSeenModel[line] || "Unknown";
+            } else {
+                lastSeenModel[line] = currentModel;
+            }
             
             let hour = dateObj.getHours();
             let intervalIndex = 0;
@@ -209,111 +214,61 @@
             
             let reportDateObj = new Date(dateObj);
             if (hour < 8) reportDateObj.setDate(reportDateObj.getDate() - 1);
-            
             let rDate = `${reportDateObj.getFullYear()}-${String(reportDateObj.getMonth()+1).padStart(2,'0')}-${String(reportDateObj.getDate()).padStart(2,'0')}`;
             
             if (!globalStore.data_by_date[rDate]) {
                 globalStore.data_by_date[rDate] = {};
-                if (!globalStore.dates.includes(rDate)) {
-                    globalStore.dates.push(rDate);
-                }
+                if (!globalStore.dates.includes(rDate)) globalStore.dates.push(rDate);
             }
             
             let dayData = globalStore.data_by_date[rDate];
-            
             if (!dayData[line]) {
                 dayData[line] = {
-                    model: "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
+                    shifts: Array.from({length: 6}, () => ({ total: 0, models: {} }))
                 };
-            }
-
-            let currentModel = row['Specification'] || row['Model'] || "";
-            if (currentModel && currentModel.toString().trim() !== "") {
-                dayData[line].model = currentModel.toString().trim();
             }
             
             let shiftData = dayData[line].shifts[intervalIndex];
+            if (!shiftData.models[currentModel]) {
+                shiftData.models[currentModel] = { total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} };
+            }
+            let mData = shiftData.models[currentModel];
             
             let comp = String(row['Comprehensive inspection'] || '').trim();
+            
+            // STRICT TOTAL OUTPUT FIX - ONLY COMPUTES GRADES
             if (comp === 'A' || comp === '注意' || comp === 'F') {
                 shiftData.total += 1;
+                mData.total += 1;
                 
-                if (comp === 'A') shiftData.a += 1;
-                else if (comp === '注意') shiftData.n += 1;
-                else if (comp === 'F') shiftData.f += 1;
+                if (comp === 'A') mData.a += 1;
+                else if (comp === '注意') mData.n += 1;
+                else if (comp === 'F') mData.f += 1;
     
                 let rawRemark = row['Station remarks'] || row['Station Remarks'] || row['Station remark'] || row['Station Remark'] || row['Remarks'] || row['Remark'];
                 let remarkKey = (rawRemark !== undefined && rawRemark !== null) ? String(rawRemark).trim() : '';
-                if (remarkKey === '') {
-                    if (comp === 'F') remarkKey = 'Blank (F)';
-                    else remarkKey = 'Blank';
-                }
-                shiftData.stationRemarks[remarkKey] = (shiftData.stationRemarks[remarkKey] || 0) + 1;
+                if (remarkKey === '') remarkKey = (comp === 'F') ? 'Blank (F)' : 'Blank';
+                mData.stationRemarks[remarkKey] = (mData.stationRemarks[remarkKey] || 0) + 1;
                 
                 if (comp === '注意') {
                     let def1 = row['The main defects in the appearance of large slitting'];
                     let def2 = row['The appearance of the quality inspection instrument is mainly defective'];
-                    
-                    let wsRaw = row['work station'] || row['Work station'] || row['Work Station'] || '';
-                    let ws = String(wsRaw).trim();
+                    let ws = String(row['work station'] || row['Work station'] || row['Work Station'] || '').trim();
                     
                     const addDefect = (desc) => {
                         if (desc && typeof desc === 'string' && desc.trim() !== '') {
                             let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
-                            if (!shiftData.defects[nDef]) {
-                                shiftData.defects[nDef] = [];
-                            }
-                            shiftData.defects[nDef].push(ws);
+                            if (!mData.defects[nDef]) mData.defects[nDef] = [];
+                            mData.defects[nDef].push(ws);
                         }
                     };
                     addDefect(def1);
                     addDefect(def2);
                 }
-            } // END OF VALID COMP CHECK
+            }
         });
         
         globalStore.dates.sort((a, b) => new Date(b) - new Date(a));
-    }
-
-    function resetDashboardState() {
-        globalStore.dates = [];
-        globalStore.data_by_date = {};
-        processedBarcodes.clear();
-        if (chartInstances && chartInstances.length > 0) {
-            chartInstances.forEach(chart => { if(chart) chart.destroy(); });
-        }
-        chartInstances = [];
-    }
-
-    function loadFromCloudAndRender() {
-        document.getElementById('reportDate').textContent = "Status: Syncing with cloud...";
-        fetch(FIREBASE_URL, { cache: "no-store" })
-            .then(res => {
-                if (!res.ok) throw new Error("Firebase Read Failed");
-                return res.json();
-            })
-            .then(data => {
-                resetDashboardState();
-                if (data && typeof data === 'object') {
-                    // Sort payloads so NEWEST uploads are processed FIRST
-                    // This forces new data to refresh/overwrite old blanks!
-                    let records = Object.values(data);
-                    records.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
-                    
-                    records.forEach(record => {
-                        if (record && record.rawData) parseMESData(record.rawData);
-                    });
-                    
-                    updateDropdownAndRender("Status: Data Loaded Successfully from Firebase");
-                } else {
-                    updateDropdownAndRender("Status: Ready for Data Upload (Cloud is empty)");
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                updateDropdownAndRender("Status: Ready (Cloud sync failed, running local mode)");
-            });
     }
 
     function updateDropdownAndRender(successMessage) {
@@ -329,6 +284,32 @@
             document.getElementById('reportDate').textContent = successMessage || "Status: Ready for Data Upload";
             renderDashboard(); 
         }
+    }
+
+    function loadFromCloudAndRender() {
+        document.getElementById('reportDate').textContent = "Status: Syncing with cloud...";
+        fetch(FIREBASE_URL, { cache: "no-store" })
+            .then(res => {
+                if (!res.ok) throw new Error("Firebase Read Failed: " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                resetDashboardState();
+                if (data && typeof data === 'object') {
+                    let records = Object.values(data);
+                    records.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
+                    records.forEach(record => {
+                        if (record && record.rawData) parseMESData(record.rawData);
+                    });
+                    updateDropdownAndRender("Status: Data Loaded Successfully from Firebase");
+                } else {
+                    updateDropdownAndRender("Status: Ready for Data Upload (Cloud is empty)");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                updateDropdownAndRender("Status: Ready (Running in Local Mode - Cloud Sync Bypassed)");
+            });
     }
 
     window.addEventListener('DOMContentLoaded', loadFromCloudAndRender);
@@ -350,7 +331,7 @@
                 const sanitizedData = jsonData.map(row => {
                     let cleanRow = {};
                     for (let key in row) {
-                        let cleanKey = String(key).replace(/[.#$\[\]/]/g, '_');
+                        let cleanKey = String(key).replace(/[.#$\[\]\/]/g, '_');
                         cleanRow[cleanKey] = row[key];
                     }
                     return cleanRow;
@@ -368,21 +349,17 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(uploadPayload)
                 }).then(response => {
-                    if (!response.ok) {
-                        alert("ERROR: Firebase blocked the save! Check Database Rules.");
-                        throw new Error("Firebase Write Failed");
-                    }
+                    if (!response.ok) throw new Error("Firebase Write Failed");
                     return response.json();
-                })
-                  .then(result => {
-                      console.log("Successfully saved to Firebase with ID:", result.name);
-                      loadFromCloudAndRender(); // Re-syncs completely to guarantee perfection
-                  }).catch(err => {
-                      alert("Warning: Could not save backup to Firebase (Running locally). Displaying uploaded file only.");
-                      resetDashboardState();
-                      parseMESData(sanitizedData);
-                      updateDropdownAndRender("Status: Local Data Loaded (Cloud Save Blocked)");
-                  });
+                }).then(result => {
+                    console.log("Successfully saved to Firebase with ID:", result.name);
+                    loadFromCloudAndRender(); 
+                }).catch(err => {
+                    alert("Warning: Could not connect to Firebase Cloud (Running locally or blocked). Uploading straight to your screen.");
+                    resetDashboardState();
+                    parseMESData(sanitizedData);
+                    updateDropdownAndRender("Status: Local Data Loaded Successfully (Cloud Bypassed)");
+                });
             } catch (error) {
                 console.error(error);
                 alert('Error processing the file. Please ensure it is a standard MES Excel export.');
@@ -393,158 +370,117 @@
         };
         reader.readAsArrayBuffer(file);
     });
-    
+
+    document.getElementById('clearAllBtn').addEventListener('click', function() {
+        const pass = prompt("Please enter the QA password to clear ALL data:");
+        if (pass !== "QAPermission") {
+            if (pass !== null) alert("Incorrect password. Permission denied.");
+            return;
+        }
+        if(!confirm("⚠️ WARNING: This will permanently DELETE ALL data in the cloud for ALL users. Are you sure?")) return;
+        
+        document.getElementById('reportDate').textContent = "Status: Deleting all cloud data...";
+        fetch(FIREBASE_URL, { method: 'DELETE' })
+            .then(() => {
+                alert("All cloud data has been successfully cleared!");
+                location.reload();
+            })
+            .catch(err => {
+                alert("Failed to delete data. Check network connection.");
+                document.getElementById('reportDate').textContent = "Status: Delete Failed";
+            });
+    });
+
+    document.getElementById('clearDateBtn').addEventListener('click', function() {
+        const selDate = document.getElementById('dateSelector').value;
+        if (!selDate) return alert("Please select a date from the dropdown first.");
+        
+        const pass = prompt(`Please enter the QA password to clear data for ${selDate}:`);
+        if (pass !== "QAPermission") {
+            if (pass !== null) alert("Incorrect password. Permission denied.");
+            return;
+        }
+        
+        if(!confirm(`⚠️ Are you sure you want to completely delete all cloud records for ${selDate}?`)) return;
+        
+        document.getElementById('reportDate').textContent = `Status: Deleting data for ${selDate}...`;
+        
+        fetch(FIREBASE_URL, { cache: "no-store" })
+            .then(res => res.json())
+            .then(data => {
+                if (!data || typeof data !== 'object') {
+                    alert("Cloud is already empty.");
+                    return location.reload();
+                }
+                
+                let newData = {};
+                let hasChanges = false;
+                
+                for (let pushId in data) {
+                    let record = data[pushId];
+                    if (record && record.rawData) {
+                        let filteredRaw = record.rawData.filter(row => {
+                            let timeRaw = row['Cut Film Time'];
+                            if (!timeRaw) return true; 
+                            
+                            let timeStr = String(timeRaw || '').trim();
+                            let dateObj;
+                            if (timeStr.includes('T') && timeStr.includes('Z')) {
+                                dateObj = new Date(timeStr);
+                            } else {
+                                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
+                                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
+                                    let timePart = timeStr.split(' ')[1] || '00:00:00';
+                                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                                }
+                                dateObj = new Date(timeStr.replace(/-/g, '/'));
+                            }
+                            if (isNaN(dateObj.getTime())) return true;
+                            
+                            let hour = dateObj.getHours();
+                            let rDateObj = new Date(dateObj);
+                            if (hour < 8) rDateObj.setDate(rDateObj.getDate() - 1);
+                            
+                            let rDate = `${rDateObj.getFullYear()}-${String(rDateObj.getMonth()+1).padStart(2,'0')}-${String(rDateObj.getDate()).padStart(2,'0')}`;
+                            
+                            return rDate !== selDate; 
+                        });
+                        
+                        if (filteredRaw.length > 0) {
+                            newData[pushId] = { uploadTime: record.uploadTime, rawData: filteredRaw };
+                        }
+                        if (filteredRaw.length !== record.rawData.length) {
+                            hasChanges = true;
+                        }
+                    }
+                }
+                
+                if (hasChanges || Object.keys(newData).length === 0) {
+                    fetch(FIREBASE_URL, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newData)
+                    }).then(() => {
+                        alert(`Data for ${selDate} has been cleared from the cloud.`);
+                        location.reload();
+                    });
+                } else {
+                    alert(`No data found for ${selDate} in the cloud.`);
+                    document.getElementById('reportDate').textContent = "Status: Data Loaded Successfully from Firebase";
+                }
+            })
+            .catch(err => {
+                alert("Failed to connect to cloud database.");
+                document.getElementById('reportDate').textContent = "Status: Ready (Cloud Error)";
+            });
+    });
+
     document.getElementById('dateSelector').addEventListener('change', renderDashboard);
     document.querySelectorAll('#lineToggles input').forEach(cb => {
         cb.addEventListener('change', renderDashboard);
     });
 
-    function generateTableHTML(line, lineData, selectedDate) {
-        if (!lineData) return '';
-        const intervals = globalStore.intervals;
-        
-        let rowsHtml = '';
-        lineData.shifts.forEach((shift, index) => {
-            const time = intervals[index];
-            
-            let desc = Object.entries(shift.defects)
-                .sort((a, b) => b[1].length - a[1].length)
-                .map(([k, v]) => {
-                    let uniqueWS = [...new Set(v.filter(w => w !== ''))].map(w => 'WS' + w).join(',');
-                    let wsStr = uniqueWS ? ` ${uniqueWS}` : '';
-                    return `${k}${wsStr} (${v.length})`;
-                })
-                .join(', ');
-            
-            if (desc === '') desc = '-';
-                
-            const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
-            const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
-            
-            rowsHtml += `<tr>
-                ${dateCell}
-                <td>${time}</td>
-                <td>${shift.total > 0 ? lineData.model : ''}</td>
-                <td>${shift.total}</td>
-                <td>${shift.a}</td>
-                <td>${shift.n}</td>
-                <td>${shift.f}</td>
-                <td>${aGradeRate}</td>
-                <td class="desc">${desc}</td>
-            </tr>`;
-        });
-
-        return `
-        <div class="table-container" style="margin-bottom: 24px;">
-            <table class="excel-table">
-                <thead>
-                    <tr class="title-row"><th colspan="9">${line} 检验情况汇总 (Inspection Summary)</th></tr>
-                    <tr class="header-row">
-                        <th>日期<br>Date</th><th>时间<br>Time</th><th>型号<br>Model</th>
-                        <th>总产出<br>Total Output</th><th>A</th><th>注意<br>Attention</th><th>F</th>
-                        <th>A品率 (%)<br>Peratusan A grade</th><th style="width: 50%;">判注意描述 Attention Abnormality Description</th>
-                    </tr>
-                </thead>
-                <tbody>${rowsHtml}</tbody>
-            </table>
-        </div>`;
-    }
-
-    function generateChartsHTML(line) {
-        return `
-        <div class="grid" style="margin-bottom: 24px;">
-            <div class="card">
-                <h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2>
-                <div class="cv"><canvas id="trendChart_${line}"></canvas></div>
-            </div>
-            <div class="card">
-                <h2>${line} - Top Defects Pareto (不良排行)</h2>
-                <div class="cv"><canvas id="paretoChart_${line}"></canvas></div>
-            </div>
-        </div>`;
-    }
-
-    function generateSummaryHTML(line, lineData) {
-        const intervals = globalStore.intervals;
-        let uniqueRemarks = new Set();
-        lineData.shifts.forEach(s => {
-            Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r));
-        });
-        let remarkList = Array.from(uniqueRemarks).sort();
-
-        let shiftColsHTML = intervals.map(t => `<th>${t}</th>`).join('');
-        
-        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
-        let nRow = `<tr><td>注意 (Attention)</td>`;
-        let fRow = `<tr><td>F</td>`;
-        let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
-        
-        lineData.shifts.forEach(s => {
-            aRow += `<td>${s.a}</td>`; aTot += s.a;
-            nRow += `<td>${s.n}</td>`; nTot += s.n;
-            fRow += `<td>${s.f}</td>`; fTot += s.f;
-            overallTot += s.total;
-        });
-        
-        let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`;
-        nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`;
-        fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
-
-        let remarkRowsHTML = '';
-        if (remarkList.length === 0) {
-            remarkRowsHTML = `<tr><td>Station Remarks<br>(备注)</td><td>-</td>` + intervals.map(t => '<td>0</td>').join('') + `<td><b>0</b> (0.00%)</td></tr>`;
-        } else {
-            remarkList.forEach((rm, idx) => {
-                let rHtml = `<tr>`;
-                if (idx === 0) rHtml += `<td rowspan="${remarkList.length}">Station Remarks<br>(备注)</td>`;
-                rHtml += `<td>${rm}</td>`;
-                let rmTot = 0;
-                lineData.shifts.forEach(s => {
-                    let c = s.stationRemarks[rm] || 0;
-                    rHtml += `<td>${c}</td>`;
-                    rmTot += c;
-                });
-                let rPct = overallTot ? ((rmTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-                rHtml += `<td><b>${rmTot}</b> (${rPct})</td></tr>`;
-                remarkRowsHTML += rHtml;
-            });
-        }
-
-        return `
-        <div style="margin-bottom: 32px;">
-            <div class="grid" style="margin-bottom: 16px;">
-                <div class="card">
-                    <h2>${line} - Overall Grade Breakdown (总评占比)</h2>
-                    <div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div>
-                </div>
-                <div class="card">
-                    <h2>${line} - Station Remarks Breakdown (备注占比)</h2>
-                    <div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="excel-table" style="min-width: 800px;">
-                    <thead>
-                        <tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr>
-                        <tr class="header-row">
-                            <th style="width: 15%;">Category (类别)</th>
-                            <th style="width: 15%;">Item (项目)</th>
-                            ${shiftColsHTML}
-                            <th style="width: 15%;">Total (总计)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${aRow}${nRow}${fRow}${remarkRowsHTML}
-                    </tbody>
-                </table>
-            </div>
-        </div>`;
-    }
-
-function renderDashboard() {
+    function renderDashboard() {
         const selectedDate = document.getElementById('dateSelector').value;
         const noDataMsg = document.getElementById('noDataMessage');
         const tablesSec = document.getElementById('tablesSection');
@@ -576,12 +512,103 @@ function renderDashboard() {
         chartsCon.innerHTML = '';
         summaryCon.innerHTML = '';
         
-        let hasData = false;
+        let finalTablesToRender = [];
+        
         selectedLines.forEach(line => {
-            if (activeData[line]) hasData = true;
+            let lineData = activeData[line];
+            if (!lineData) {
+                lineData = { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
+            }
+            
+            // Find the index of the LAST shift that actually has output data.
+            // Any empty shifts AFTER this index are in the future, and should be completely blank.
+            let lastActiveIndex = -1;
+            for(let i = 0; i < 6; i++) {
+                let shiftTotal = 0;
+                Object.values(lineData.shifts[i].models).forEach(m => shiftTotal += m.total);
+                if (shiftTotal > 0) lastActiveIndex = i;
+            }
+            
+            let allModels = new Set();
+            lineData.shifts.forEach(s => Object.keys(s.models).forEach(m => allModels.add(m)));
+            let modelArray = Array.from(allModels);
+            
+            let splitTables = false;
+            let forcedModel = null;
+            
+            if (modelArray.length > 1) {
+                let dKey = `conflict_${selectedDate}_${line}`;
+                let dec = globalStore.userDecisions[dKey];
+                if (!dec) {
+                    let msg = `Line ${line} ran multiple models on ${selectedDate}: ${modelArray.join(', ')}.\nType 'BOTH' to create separate tables, or type ONE model name to merge them:`;
+                    dec = prompt(msg, "BOTH");
+                    dec = dec ? dec.trim() : "BOTH";
+                    globalStore.userDecisions[dKey] = dec;
+                }
+                if (dec.toUpperCase() === 'BOTH') splitTables = true;
+                else forcedModel = dec;
+            } else if (modelArray.length === 1) {
+                forcedModel = modelArray[0];
+            } else {
+                forcedModel = ""; // Line is completely empty for the day
+            }
+            
+            let tablesNeeded = splitTables ? modelArray : [forcedModel];
+            
+            tablesNeeded.forEach(targetModel => {
+                let tableObj = {
+                    title: splitTables ? `${line} (${targetModel})` : line,
+                    model: targetModel,
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: targetModel }))
+                };
+                
+                let prevModelTracker = targetModel;
+                
+                for (let i = 0; i < 6; i++) {
+                    let rawShift = lineData.shifts[i];
+                    let tShift = tableObj.shifts[i];
+                    
+                    let modelsInShift = Object.keys(rawShift.models);
+                    let modelsToSum = splitTables ? (rawShift.models[targetModel] ? [targetModel] : []) : modelsInShift;
+                    
+                    if (modelsToSum.length === 0) {
+                        // ZERO OUTPUT LOGIC
+                        if (i < lastActiveIndex) {
+                            // It is a GAP shift. Pop up and ask the user!
+                            let dKey = `gap_${selectedDate}_${line}_${i}_${targetModel}`;
+                            let shiftName = globalStore.intervals[i];
+                            if (!globalStore.userDecisions[dKey]) {
+                                let ans = prompt(`Line ${line} has 0 output during ${shiftName} on ${selectedDate}.\nWhat model was running? (Leave blank to use '${prevModelTracker}')`, prevModelTracker);
+                                globalStore.userDecisions[dKey] = ans ? ans.trim() : prevModelTracker;
+                            }
+                            tShift.model = globalStore.userDecisions[dKey];
+                            prevModelTracker = tShift.model;
+                        } else {
+                            // It is a FUTURE/END shift (or whole day empty). Silently blank. NO POP-UPS.
+                            tShift.model = "";
+                        }
+                    } else {
+                        modelsToSum.forEach(m => {
+                            let md = rawShift.models[m];
+                            tShift.total += md.total;
+                            tShift.a += md.a; tShift.n += md.n; tShift.f += md.f;
+                            for (let d in md.defects) {
+                                if(!tShift.defects[d]) tShift.defects[d] = [];
+                                tShift.defects[d].push(...md.defects[d]);
+                            }
+                            for (let r in md.stationRemarks) {
+                                tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
+                            }
+                        });
+                        prevModelTracker = splitTables ? targetModel : (modelsToSum[0] || prevModelTracker);
+                        tShift.model = prevModelTracker;
+                    }
+                }
+                finalTablesToRender.push(tableObj);
+            });
         });
 
-        if (!hasData) {
+        if (finalTablesToRender.length === 0) {
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
@@ -594,42 +621,13 @@ function renderDashboard() {
         chartsSec.style.display = 'block';
         summarySec.style.display = 'block';
 
-        selectedLines.forEach(line => {
-            if (!activeData[line]) {
-                activeData[line] = {
-                    model: "",
-                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} }))
-                };
-            }
-            if (!activeData[line].model || activeData[line].model.trim() === "") {
-                let foundModel = "";
-                for (let d of globalStore.dates) {
-                    let dData = globalStore.data_by_date[d];
-                    if (dData && dData[line] && dData[line].model && dData[line].model.trim() !== "") {
-                        foundModel = dData[line].model.trim();
-                        break;
-                    }
-                }
-                if (foundModel !== "") {
-                    activeData[line].model = foundModel;
-                } else {
-                    let m = prompt(`No model found for ${line} on ${selectedDate}.\nPlease enter the Model/Specification (e.g., SW509J):`, "");
-                    activeData[line].model = m ? m.trim() : "N/A";
-                }
-            }
-        });
-
-        selectedLines.forEach(line => {
-            if (activeData[line]) {
-                tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, activeData[line], selectedDate));
-                chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
-                summaryCon.insertAdjacentHTML('beforeend', generateSummaryHTML(line, activeData[line]));
-            }
-        });
-
-        selectedLines.forEach(line => {
-            const lineData = activeData[line];
-            if (!lineData) return;
+        finalTablesToRender.forEach(tableItem => {
+            let line = tableItem.title;
+            let lineData = tableItem;
+            
+            tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, lineData, selectedDate));
+            chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
+            summaryCon.insertAdjacentHTML('beforeend', generateSummaryHTML(line, lineData));
 
             const defectMap = {};
             lineData.shifts.forEach((shift, index) => {
@@ -748,35 +746,97 @@ function renderDashboard() {
         });
     }
 
+    function generateTableHTML(line, lineData, selectedDate) {
+        if (!lineData) return '';
+        const intervals = globalStore.intervals;
+        let rowsHtml = '';
+        lineData.shifts.forEach((shift, index) => {
+            const time = intervals[index];
+            let desc = Object.entries(shift.defects).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => {
+                let uniqueWS = [...new Set(v.filter(w => w !== ''))].map(w => 'WS' + w).join(',');
+                let wsStr = uniqueWS ? ` ${uniqueWS}` : '';
+                return `${k}${wsStr} (${v.length})`;
+            }).join(', ');
+            if (desc === '') desc = '-';
+            const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
+            const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
+            
+            // KEY FIX: Only display the model text if total output > 0 or if explicitly confirmed by a gap prompt.
+            // For future shifts, shift.model is set to "" so it naturally displays as completely blank.
+            let displayModel = shift.model || '';
+            
+            rowsHtml += `<tr>${dateCell}<td>${time}</td><td>${displayModel}</td><td>${shift.total}</td><td>${shift.a}</td><td>${shift.n}</td><td>${shift.f}</td><td>${aGradeRate}</td><td class="desc">${desc}</td></tr>`;
+        });
+        return `<div class="table-container" style="margin-bottom: 24px;"><table class="excel-table"><thead><tr class="title-row"><th colspan="9">${line} 检验情况汇总 (Inspection Summary)</th></tr><tr class="header-row"><th>日期<br>Date</th><th>时间<br>Time</th><th>型号<br>Model</th><th>总产出<br>Total Output</th><th>A</th><th>注意<br>Attention</th><th>F</th><th>A品率 (%)<br>Peratusan A grade</th><th style="width: 50%;">判注意描述 Attention Abnormality Description</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+    }
+
+    function generateChartsHTML(line) {
+        return `<div class="grid" style="margin-bottom: 24px;"><div class="card"><h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2><div class="cv"><canvas id="trendChart_${line}"></canvas></div></div><div class="card"><h2>${line} - Top Defects Pareto (不良排行)</h2><div class="cv"><canvas id="paretoChart_${line}"></canvas></div></div></div>`;
+    }
+
+    function generateSummaryHTML(line, lineData) {
+        const intervals = globalStore.intervals;
+        let uniqueRemarks = new Set();
+        lineData.shifts.forEach(s => { Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r)); });
+        let remarkList = Array.from(uniqueRemarks).sort();
+
+        let shiftColsHTML = intervals.map(t => `<th>${t}</th>`).join('');
+        
+        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
+        let nRow = `<tr><td>注意 (Attention)</td>`;
+        let fRow = `<tr><td>F</td>`;
+        let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
+        
+        lineData.shifts.forEach(s => {
+            aRow += `<td>${s.a}</td>`; aTot += s.a;
+            nRow += `<td>${s.n}</td>`; nTot += s.n;
+            fRow += `<td>${s.f}</td>`; fTot += s.f;
+            overallTot += s.total;
+        });
+        
+        let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`;
+        nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`;
+        fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
+
+        let remarkRowsHTML = '';
+        if (remarkList.length === 0) {
+            remarkRowsHTML = `<tr><td>Station Remarks<br>(备注)</td><td>-</td>` + intervals.map(t => '<td>0</td>').join('') + `<td><b>0</b> (0.00%)</td></tr>`;
+        } else {
+            remarkList.forEach((rm, idx) => {
+                let rHtml = `<tr>`;
+                if (idx === 0) rHtml += `<td rowspan="${remarkList.length}">Station Remarks<br>(备注)</td>`;
+                rHtml += `<td>${rm}</td>`;
+                let rmTot = 0;
+                lineData.shifts.forEach(s => {
+                    let c = s.stationRemarks[rm] || 0;
+                    rHtml += `<td>${c}</td>`;
+                    rmTot += c;
+                });
+                let rPct = overallTot ? ((rmTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
+                rHtml += `<td><b>${rmTot}</b> (${rPct})</td></tr>`;
+                remarkRowsHTML += rHtml;
+            });
+        }
+
+        return `<div style="margin-bottom: 32px;"><div class="grid" style="margin-bottom: 16px;"><div class="card"><h2>${line} - Overall Grade Breakdown (总评占比)</h2><div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div></div><div class="card"><h2>${line} - Station Remarks Breakdown (备注占比)</h2><div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div></div></div><div class="table-container"><table class="excel-table" style="min-width: 800px;"><thead><tr class="title-row"><th colspan="${2 + intervals.length + 1}">${line} - Overall Summary Details (总体汇总详情)</th></tr><tr class="header-row"><th style="width: 15%;">Category (类别)</th><th style="width: 15%;">Item (项目)</th>${shiftColsHTML}<th style="width: 15%;">Total (总计)</th></tr></thead><tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody></table></div></div>`;
+    }
+
     async function captureElement(elementId) {
         const target = document.getElementById(elementId);
         const printContainer = document.createElement('div');
-        printContainer.style.position = 'absolute';
-        printContainer.style.top = '-9999px';
-        printContainer.style.left = '0';
-        printContainer.style.width = '1400px'; 
-        printContainer.style.background = '#f1f1ee';
-        printContainer.style.padding = '20px';
-        printContainer.style.zIndex = '-1';
-        
+        printContainer.style.position = 'absolute'; printContainer.style.top = '-9999px'; printContainer.style.left = '0';
+        printContainer.style.width = '1400px'; printContainer.style.background = '#f1f1ee'; printContainer.style.padding = '20px'; printContainer.style.zIndex = '-1';
         const clone = target.cloneNode(true);
-        clone.style.margin = '0';
-        clone.style.display = 'block'; 
-        clone.style.borderTop = 'none'; 
+        clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none'; 
         
         const scrollableContainers = clone.querySelectorAll('.table-container');
-        scrollableContainers.forEach(c => {
-            c.style.overflow = 'visible'; 
-            c.style.width = '100%';
-            c.style.border = 'none'; 
-        });
+        scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.width = '100%'; c.style.border = 'none'; });
         
         const tables = clone.querySelectorAll('.excel-table');
-        tables.forEach(t => {
-            t.style.width = '100%';
-            t.style.minWidth = '1200px'; 
-            t.style.border = '1px solid #141413'; 
-        });
+        tables.forEach(t => { t.style.width = '100%'; t.style.minWidth = '1200px'; t.style.border = '1px solid #141413'; });
 
         const originalCanvases = target.querySelectorAll('canvas');
         const clonedCanvases = clone.querySelectorAll('canvas');
@@ -788,15 +848,9 @@ function renderDashboard() {
             img.style.height = '100%';
             clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
         }
-
         printContainer.appendChild(clone);
         document.body.appendChild(printContainer);
-        
-        try {
-            return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1400 });
-        } finally {
-            document.body.removeChild(printContainer); 
-        }
+        try { return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1400 }); } finally { document.body.removeChild(printContainer); }
     }
 
     async function handleCopy(elementId, btn) {
@@ -806,19 +860,12 @@ function renderDashboard() {
             const canvas = await captureElement(elementId);
             canvas.toBlob(async function(blob) {
                 try {
-                    const item = new ClipboardItem({ "image/png": blob });
-                    await navigator.clipboard.write([item]);
+                    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
                     btn.textContent = '✅ Copied!';
-                    setTimeout(() => btn.textContent = originalText, 2000);
-                } catch (err) {
-                    btn.textContent = '❌ Failed (Use Mobile)';
-                    setTimeout(() => btn.textContent = originalText, 2500);
-                }
+                } catch (err) { btn.textContent = '❌ Failed (Use Mobile)'; }
+                setTimeout(() => btn.textContent = originalText, 2500);
             });
-        } catch(e) {
-            btn.textContent = '❌ Error';
-            setTimeout(() => btn.textContent = originalText, 2000);
-        }
+        } catch(e) { btn.textContent = '❌ Error'; setTimeout(() => btn.textContent = originalText, 2000); }
     }
 
     async function handleShare(elementId, btn, filePrefix) {
@@ -836,23 +883,14 @@ function renderDashboard() {
                 } else {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                    a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
                     btn.textContent = '✅ Downloaded!';
                 }
                 setTimeout(() => btn.textContent = originalText, 2500);
             }, "image/png");
-        } catch(e) {
-            btn.textContent = '❌ Error';
-            setTimeout(() => btn.textContent = originalText, 2000);
-        }
+        } catch(e) { btn.textContent = '❌ Error'; setTimeout(() => btn.textContent = originalText, 2000); }
     }
 
-    // Button Bindings
     document.getElementById('copyTableBtn').addEventListener('click', function() { handleCopy('tablesContainer', this); });
     document.getElementById('shareTableBtn').addEventListener('click', function() { handleShare('tablesContainer', this, 'QC_Tables'); });
     document.getElementById('copyChartBtn').addEventListener('click', function() { handleCopy('chartsContainer', this); });
@@ -861,6 +899,18 @@ function renderDashboard() {
     document.getElementById('shareSummaryBtn').addEventListener('click', function() { handleShare('summaryContainer', this, 'QC_Summary'); });
     document.getElementById('exportExcelBtn_top').addEventListener('click', exportToExcel);
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
+
+    document.getElementById('copyMessageBtn').addEventListener('click', function() {
+        const originalText = this.textContent;
+        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours.\n请参考上方关于过去 4 小时 W1-W4 102 湿法 (MES) 的检验汇总报告。";
+        navigator.clipboard.writeText(msg).then(() => {
+            this.textContent = '✅ Copied!';
+            setTimeout(() => this.textContent = originalText, 2000);
+        }).catch(err => {
+            this.textContent = '❌ Failed to copy';
+            setTimeout(() => this.textContent = originalText, 2000);
+        });
+    });
 
     function exportToExcel() {
         const btn = this;
@@ -874,36 +924,70 @@ function renderDashboard() {
             const checkboxes = document.querySelectorAll('#lineToggles input[type="checkbox"]');
             const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
-            const borderAll = {
-                top: { style: "thin", color: { rgb: "000000" } },
-                bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } },
-                right: { style: "thin", color: { rgb: "000000" } }
-            };
-
-            selectedLines.forEach(line => {
-                if (!activeData[line]) return;
-                const lineData = activeData[line];
-                let ws_data = [];
+            let finalTablesToExport = [];
+            selectedLines.forEach(baseLine => {
+                let lineData = activeData[baseLine] || { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
                 
-                let titleRow = [];
-                for(let i = 0; i < 9; i++) {
-                    titleRow.push({
-                        v: i === 0 ? `${line} 检验情况汇总 (Inspection Summary)` : "",
-                        s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll }
-                    });
+                let lastActiveIndex = -1;
+                for(let i = 0; i < 6; i++) {
+                    let shiftTotal = 0;
+                    Object.values(lineData.shifts[i].models).forEach(m => shiftTotal += m.total);
+                    if (shiftTotal > 0) lastActiveIndex = i;
                 }
-                ws_data.push(titleRow);
 
-                let headers = [
-                    "日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", 
-                    "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", 
-                    "判注意描述 Attention Abnormality Description"
-                ];
-                let headerRow = headers.map(h => ({
-                    v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll }
-                }));
-                ws_data.push(headerRow);
+                let allModels = new Set();
+                lineData.shifts.forEach(s => Object.keys(s.models).forEach(m => allModels.add(m)));
+                let modelArray = Array.from(allModels);
+                
+                let splitTables = false; let forcedModel = null;
+                if (modelArray.length > 1) {
+                    let dec = globalStore.userDecisions[`conflict_${selectedDate}_${baseLine}`] || "BOTH";
+                    if (dec.toUpperCase() === 'BOTH') splitTables = true; else forcedModel = dec;
+                } else if (modelArray.length === 1) forcedModel = modelArray[0];
+                else forcedModel = "";
+
+                let tablesNeeded = splitTables ? modelArray : [forcedModel];
+                
+                tablesNeeded.forEach(targetModel => {
+                    let tableObj = { title: splitTables ? `${baseLine} (${targetModel})` : baseLine, model: targetModel, shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: targetModel })) };
+                    let prevModelTracker = targetModel;
+                    
+                    for (let i = 0; i < 6; i++) {
+                        let rawShift = lineData.shifts[i], tShift = tableObj.shifts[i];
+                        let modelsInShift = Object.keys(rawShift.models);
+                        let modelsToSum = splitTables ? (rawShift.models[targetModel] ? [targetModel] : []) : modelsInShift;
+                        
+                        if (modelsToSum.length === 0) {
+                            if (i < lastActiveIndex) {
+                                tShift.model = globalStore.userDecisions[`gap_${selectedDate}_${baseLine}_${i}_${targetModel}`] || prevModelTracker;
+                                prevModelTracker = tShift.model;
+                            } else {
+                                tShift.model = "";
+                            }
+                        } else {
+                            modelsToSum.forEach(m => {
+                                let md = rawShift.models[m];
+                                tShift.total += md.total; tShift.a += md.a; tShift.n += md.n; tShift.f += md.f;
+                                for (let d in md.defects) { if(!tShift.defects[d]) tShift.defects[d] = []; tShift.defects[d].push(...md.defects[d]); }
+                                for (let r in md.stationRemarks) tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
+                            });
+                            prevModelTracker = splitTables ? targetModel : (modelsToSum[0] || prevModelTracker);
+                            tShift.model = prevModelTracker;
+                        }
+                    }
+                    finalTablesToExport.push(tableObj);
+                });
+            });
+
+            const borderAll = { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } }, left: { style: "thin", color: { rgb: "000000" } }, right: { style: "thin", color: { rgb: "000000" } } };
+
+            finalTablesToExport.forEach(tableItem => {
+                let line = tableItem.title;
+                let lineData = tableItem;
+                let ws_data = [];
+                ws_data.push([{ v: `${line} 检验情况汇总 (Inspection Summary)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
+                let headers = ["日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output", "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A grade", "判注意描述 Attention Abnormality Description"];
+                ws_data.push(headers.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } })));
 
                 lineData.shifts.forEach((shift, index) => {
                     const time = globalStore.intervals[index];
@@ -913,24 +997,21 @@ function renderDashboard() {
                         return `${k}${wsStr} (${v.length})`;
                     }).join(', ');
                     if (desc === '') desc = '-';
-                    
                     const aGradeRate = shift.total > 0 ? (shift.a / shift.total) : 0;
-                    const dateCell = index === 0 ? selectedDate : "";
                     
-                    let dataArray = [dateCell, time, shift.total > 0 ? lineData.model : "", shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
+                    let displayModel = shift.model || '';
                     
-                    let formattedRow = dataArray.map((val, cIdx) => {
+                    let dataArray = [index === 0 ? selectedDate : "", time, displayModel, shift.total, shift.a, shift.n, shift.f, aGradeRate, desc];
+                    ws_data.push(dataArray.map((val, cIdx) => {
                         let cell = { v: val, s: { alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll } };
                         if (cIdx === 7 && typeof val === 'number') { cell.t = 'n'; cell.z = "0.00%"; }
-                        if (cIdx === 8) { cell.s.alignment.horizontal = "left"; }
+                        if (cIdx === 8) cell.s.alignment.horizontal = "left";
                         return cell;
-                    });
-                    ws_data.push(formattedRow);
+                    }));
                 });
 
                 ws_data.push([]); 
                 ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: "9BC2E6" } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
-                
                 let sumHeaders = ["Category (类别)", "Item (项目)", ...globalStore.intervals, "Total (总计)"];
                 ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: "A9D08E" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
 
@@ -938,30 +1019,17 @@ function renderDashboard() {
                 let nRow = [{v:""}, {v:"注意 (Attention)"}];
                 let fRow = [{v:""}, {v:"F"}];
                 let totalA = 0, totalN = 0, totalF = 0, totalOutput = 0;
-
-                lineData.shifts.forEach(s => {
-                    aRow.push({v: s.a}); totalA += s.a;
-                    nRow.push({v: s.n}); totalN += s.n;
-                    fRow.push({v: s.f}); totalF += s.f;
-                    totalOutput += s.total;
-                });
-                
+                lineData.shifts.forEach(s => { aRow.push({v: s.a}); totalA += s.a; nRow.push({v: s.n}); totalN += s.n; fRow.push({v: s.f}); totalF += s.f; totalOutput += s.total; });
                 let aPct = totalOutput > 0 ? ((totalA / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
                 let nPct = totalOutput > 0 ? ((totalN / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
                 let fPct = totalOutput > 0 ? ((totalF / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                aRow.push({v: `${totalA} (${aPct})`});
-                nRow.push({v: `${totalN} (${nPct})`});
-                fRow.push({v: `${totalF} (${fPct})`});
-                
+                aRow.push({v: `${totalA} (${aPct})`}); nRow.push({v: `${totalN} (${nPct})`}); fRow.push({v: `${totalF} (${fPct})`});
                 let s_fmt = { alignment: { horizontal: "center", vertical: "center" }, border: borderAll };
-                ws_data.push(aRow.map(cell => ({v: cell.v, s: s_fmt})));
-                ws_data.push(nRow.map(cell => ({v: cell.v, s: s_fmt})));
-                ws_data.push(fRow.map(cell => ({v: cell.v, s: s_fmt})));
+                ws_data.push(aRow.map(cell => ({v: cell.v, s: s_fmt}))); ws_data.push(nRow.map(cell => ({v: cell.v, s: s_fmt}))); ws_data.push(fRow.map(cell => ({v: cell.v, s: s_fmt})));
 
                 let uniqueRemarks = new Set();
                 lineData.shifts.forEach(s => { Object.keys(s.stationRemarks).forEach(r => uniqueRemarks.add(r)); });
                 let remarks = Array.from(uniqueRemarks).sort();
-
                 if(remarks.length === 0) {
                     let emptyRem = [{v:"Station Remarks (备注)"}, {v:"-"}];
                     lineData.shifts.forEach(() => emptyRem.push({v: 0}));
@@ -971,11 +1039,7 @@ function renderDashboard() {
                     remarks.forEach((rm, idx) => {
                         let rRow = [{v: idx===0 ? "Station Remarks (备注)" : ""}, {v: rm}];
                         let rmTot = 0;
-                        lineData.shifts.forEach(s => {
-                            let c = s.stationRemarks[rm] || 0;
-                            rRow.push({v: c});
-                            rmTot += c;
-                        });
+                        lineData.shifts.forEach(s => { let c = s.stationRemarks[rm] || 0; rRow.push({v: c}); rmTot += c; });
                         let rPct = totalOutput > 0 ? ((rmTot / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
                         rRow.push({v: `${rmTot} (${rPct})`});
                         ws_data.push(rRow.map(cell => ({v: cell.v, s: s_fmt})));
@@ -986,139 +1050,21 @@ function renderDashboard() {
                 ws['!merges'] = [ { s: {r: 0, c: 0}, e: {r: 0, c: 8} }, { s: {r: 2, c: 0}, e: {r: 7, c: 0} } ];
                 ws['!merges'].push({ s: {r: 9, c: 0}, e: {r: 9, c: 8} });
                 ws['!merges'].push({ s: {r: 11, c: 0}, e: {r: 13, c: 0} });
-                if(remarks.length > 1) {
-                    ws['!merges'].push({ s: {r: 14, c: 0}, e: {r: 13 + remarks.length, c: 0} });
-                }
-                ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 20 } ];
-                XLSX.utils.book_append_sheet(wb, ws, line);
+                if(remarks.length > 1) ws['!merges'].push({ s: {r: 14, c: 0}, e: {r: 13 + remarks.length, c: 0} });
+                
+                let safeSheetName = line.replace(/[\[\]\*?:\/]/g, "").substring(0, 31);
+                ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
+                XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
             });
-
             XLSX.writeFile(wb, `QC_Report_${selectedDate}.xlsx`);
             btn.textContent = '✅ Downloaded!';
             setTimeout(() => btn.textContent = originalText, 2500);
         } catch (error) {
             btn.textContent = '❌ Export Failed';
+            console.error(error);
             setTimeout(() => btn.textContent = originalText, 2500);
         }
     }
-
-    document.getElementById('clearAllBtn').addEventListener('click', function() {
-        const pass = prompt("Please enter the QA password to clear ALL data:");
-        if (pass !== "QAPermission") {
-            if (pass !== null) alert("Incorrect password. Permission denied.");
-            return;
-        }
-        if(!confirm("⚠️ WARNING: This will permanently DELETE ALL data in the cloud for ALL users. Are you sure?")) return;
-        
-        document.getElementById('reportDate').textContent = "Status: Deleting all cloud data...";
-        fetch(FIREBASE_URL, { method: 'DELETE' })
-            .then(() => {
-                alert("All cloud data has been successfully cleared!");
-                location.reload();
-            })
-            .catch(err => {
-                alert("Failed to delete data. Check network or rules.");
-                document.getElementById('reportDate').textContent = "Status: Delete Failed";
-            });
-    });
-
-    document.getElementById('clearDateBtn').addEventListener('click', function() {
-        const selDate = document.getElementById('dateSelector').value;
-        if (!selDate) return alert("Please select a date from the dropdown first.");
-        
-        const pass = prompt(`Please enter the QA password to clear data for ${selDate}:`);
-        if (pass !== "QAPermission") {
-            if (pass !== null) alert("Incorrect password. Permission denied.");
-            return;
-        }
-        
-        if(!confirm(`⚠️ Are you sure you want to completely delete all cloud records for ${selDate}?`)) return;
-        
-        document.getElementById('reportDate').textContent = `Status: Deleting data for ${selDate}...`;
-        
-        fetch(FIREBASE_URL, { cache: "no-store" })
-            .then(res => res.json())
-            .then(data => {
-                if (!data || typeof data !== 'object') {
-                    alert("Cloud is already empty.");
-                    return location.reload();
-                }
-                
-                let newData = {};
-                let hasChanges = false;
-                
-                for (let pushId in data) {
-                    let record = data[pushId];
-                    if (record && record.rawData) {
-                        let filteredRaw = record.rawData.filter(row => {
-                            let timeRaw = row['Cut Film Time'];
-                            if (!timeRaw) return true; 
-                            
-                            let timeStr = String(timeRaw || '').trim();
-                            let dateObj;
-                            if (timeStr.includes('T') && timeStr.includes('Z')) {
-                                dateObj = new Date(timeStr);
-                            } else {
-                                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
-                                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
-                                    let timePart = timeStr.split(' ')[1] || '00:00:00';
-                                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
-                                }
-                                dateObj = new Date(timeStr.replace(/-/g, '/'));
-                            }
-                            if (isNaN(dateObj.getTime())) return true;
-                            
-                            let hour = dateObj.getHours();
-                            let rDateObj = new Date(dateObj);
-                            if (hour < 8) rDateObj.setDate(rDateObj.getDate() - 1);
-                            
-                            let rDate = `${rDateObj.getFullYear()}-${String(rDateObj.getMonth()+1).padStart(2,'0')}-${String(rDateObj.getDate()).padStart(2,'0')}`;
-                            
-                            return rDate !== selDate; 
-                        });
-                        
-                        if (filteredRaw.length > 0) {
-                            newData[pushId] = { uploadTime: record.uploadTime, rawData: filteredRaw };
-                        }
-                        if (filteredRaw.length !== record.rawData.length) {
-                            hasChanges = true;
-                        }
-                    }
-                }
-                
-                if (hasChanges || Object.keys(newData).length === 0) {
-                    fetch(FIREBASE_URL, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newData)
-                    }).then(() => {
-                        alert(`Data for ${selDate} has been cleared from the cloud.`);
-                        location.reload();
-                    });
-                } else {
-                    alert(`No data found for ${selDate} in the cloud.`);
-                    document.getElementById('reportDate').textContent = "Status: Data Loaded Successfully from Firebase";
-                }
-            })
-            .catch(err => {
-                alert("Failed to connect to cloud database.");
-                document.getElementById('reportDate').textContent = "Status: Ready (Cloud Error)";
-            });
-    });
-
-    document.getElementById('copyMessageBtn').addEventListener('click', function() {
-        const originalText = this.textContent;
-        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours.\n请参考上方关于过去 4 小时 W1-W4 102 湿法 (MES) 的检验汇总报告。";
-        
-        navigator.clipboard.writeText(msg).then(() => {
-            this.textContent = '✅ Copied!';
-            setTimeout(() => this.textContent = originalText, 2000);
-        }).catch(err => {
-            this.textContent = '❌ Failed to copy';
-            setTimeout(() => this.textContent = originalText, 2000);
-        });
-    });
 </script>
-
 </body>
 </html>
