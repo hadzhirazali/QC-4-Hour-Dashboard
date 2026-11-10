@@ -144,10 +144,6 @@
 </script>
 
 <script>
-    if (!window.globalStoreCache) window.globalStoreCache = { userDecisions: {} };
-</script>
-
-<script>
     // OFF-LINE PROTECTION: Prevents freeze if Chart.js cannot load
     try {
         if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
@@ -158,7 +154,6 @@
     }
 
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
-    globalStore.userDecisions = window.globalStoreCache.userDecisions;
     const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
     let chartInstances = [];
     let processedBarcodes = new Set();
@@ -211,7 +206,6 @@
                 let safeKey = String(k).trim().replace(/[.#$\[\]\/]/g, '_');
                 row[safeKey] = rawRow[k];
             }
-            
             let line = String(row['Production Line'] || '').trim();
             let timeRaw = row['Cut Film Time'];
             let barcode = row['Large cut labels'] || (row['Scan label'] ? row['Scan label'] + '_' + row['work station'] : row['Document No_']);
@@ -268,30 +262,34 @@
             let dayData = globalStore.data_by_date[rDate];
             if (!dayData[line]) {
                 dayData[line] = {
-                    shifts: Array.from({length: 6}, () => ({ total: 0, models: {} }))
+                    model: currentModel,
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: "" }))
                 };
             }
             
             let shiftData = dayData[line].shifts[intervalIndex];
-            if (!shiftData.models[currentModel]) {
-                shiftData.models[currentModel] = { total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {} };
+            
+            // Assign model immediately
+            if (currentModel && currentModel !== "Unknown") {
+                shiftData.model = currentModel;
+                dayData[line].model = currentModel;
             }
-            let mData = shiftData.models[currentModel];
             
             let comp = String(row['Comprehensive inspection'] || '').trim();
-            
             if (comp === 'A' || comp === '注意' || comp === 'F') {
                 shiftData.total += 1;
-                mData.total += 1;
                 
-                if (comp === 'A') mData.a += 1;
-                else if (comp === '注意') mData.n += 1;
-                else if (comp === 'F') mData.f += 1;
+                if (comp === 'A') shiftData.a += 1;
+                else if (comp === '注意') shiftData.n += 1;
+                else if (comp === 'F') shiftData.f += 1;
     
                 let rawRemark = row['Station remarks'] || row['Station Remarks'] || row['Station remark'] || row['Station Remark'] || row['Remarks'] || row['Remark'];
                 let remarkKey = (rawRemark !== undefined && rawRemark !== null) ? String(rawRemark).trim() : '';
-                if (remarkKey === '') remarkKey = (comp === 'F') ? 'Blank (F)' : 'Blank';
-                mData.stationRemarks[remarkKey] = (mData.stationRemarks[remarkKey] || 0) + 1;
+                if (remarkKey === '') {
+                    if (comp === 'F') remarkKey = 'Blank (F)';
+                    else remarkKey = 'Blank';
+                }
+                shiftData.stationRemarks[remarkKey] = (shiftData.stationRemarks[remarkKey] || 0) + 1;
                 
                 if (comp === '注意') {
                     let def1 = row['The main defects in the appearance of large slitting'];
@@ -301,8 +299,10 @@
                     const addDefect = (desc) => {
                         if (desc && typeof desc === 'string' && desc.trim() !== '') {
                             let nDef = desc.trim().charAt(0).toUpperCase() + desc.trim().slice(1).toLowerCase();
-                            if (!mData.defects[nDef]) mData.defects[nDef] = [];
-                            mData.defects[nDef].push(ws);
+                            if (!shiftData.defects[nDef]) {
+                                shiftData.defects[nDef] = [];
+                            }
+                            shiftData.defects[nDef].push(ws);
                         }
                     };
                     addDefect(def1);
@@ -332,31 +332,49 @@
     function loadFromCloudAndRender() {
         document.getElementById('reportDate').textContent = "Status: Syncing with cloud...";
         
-        // Timeout to gracefully fallback if local execution blocks the fetch request completely
-        const fetchTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Cloud timeout (Likely running offline/locally)")), 4000));
-        const fetchRequest = fetch(FIREBASE_URL, { cache: "no-store" }).then(res => {
-            if (!res.ok) throw new Error("Firebase Read Failed: " + res.status);
+        let localBackup = localStorage.getItem("QC_Offline_Backup");
+        if (localBackup) {
+            try {
+                let data = JSON.parse(localBackup);
+                resetDashboardState();
+                let records = Object.values(data);
+                records.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
+                records.forEach(record => {
+                    if (record && record.rawData) parseMESData(record.rawData);
+                });
+                updateDropdownAndRender("Status: Offline Backup Loaded");
+            } catch(e) { console.warn("Local backup parse failed"); }
+        }
+
+        const fetchTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Cloud timeout")), 4000));
+        const fetchRequest = fetch(FIREBASE_URL).then(res => { 
+            if (!res.ok) throw new Error("Firebase Read Failed");
             return res.json();
         });
 
         Promise.race([fetchRequest, fetchTimeout])
             .then(data => {
-                resetDashboardState();
                 if (data && typeof data === 'object') {
+                    localStorage.setItem("QC_Offline_Backup", JSON.stringify(data));
+                    
+                    resetDashboardState();
                     let records = Object.values(data);
                     records.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
                     records.forEach(record => {
                         if (record && record.rawData) parseMESData(record.rawData);
                     });
-                    updateDropdownAndRender("Status: Data Loaded Successfully from Firebase");
-                } else {
-                    updateDropdownAndRender("Status: Ready for Data Upload (Cloud is empty)");
+                    document.getElementById('reportDate').style.color = "var(--ink)";
+                    updateDropdownAndRender("Status: Synced with Cloud Database");
                 }
             })
             .catch(err => {
-                console.warn(err);
-                document.getElementById('reportDate').style.color = "var(--warn)";
-                updateDropdownAndRender("Status: Ready (Running Local Offline Mode - Cloud Blocked)");
+                console.warn("Cloud sync bypassed:", err);
+                if (localBackup) {
+                    document.getElementById('reportDate').style.color = "var(--warn)";
+                    document.getElementById('reportDate').textContent = "Status: Working Offline (Using Local Backup)";
+                } else {
+                    document.getElementById('reportDate').textContent = "Status: Ready for Offline Data Upload";
+                }
             });
     }
 
@@ -385,11 +403,19 @@
                     return cleanRow;
                 });
                 
-                document.getElementById('reportDate').textContent = "Status: Saving backup to Database...";
                 const uploadPayload = { uploadTime: new Date().toISOString(), rawData: sanitizedData };
 
-                // Handle local execution gracefully without freezing
-                const uploadTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Local Execution Timeout")), 3000));
+                parseMESData(sanitizedData);
+                document.getElementById('reportDate').style.color = "var(--ink)";
+                updateDropdownAndRender("Status: Processing data locally...");
+
+                try {
+                    let existingBackup = JSON.parse(localStorage.getItem("QC_Offline_Backup") || "{}");
+                    existingBackup["local_" + Date.now()] = uploadPayload; 
+                    localStorage.setItem("QC_Offline_Backup", JSON.stringify(existingBackup));
+                } catch(e) { console.warn("Could not save to local offline backup."); }
+
+                const uploadTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Local Execution Timeout")), 4000));
                 const uploadRequest = fetch(FIREBASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -399,20 +425,15 @@
                 Promise.race([uploadRequest, uploadTimeout])
                 .then(response => {
                     if (!response.ok) throw new Error("Firebase Write Failed");
-                    return response.json();
-                })
-                .then(result => {
-                    console.log("Successfully saved to Firebase with ID:", result.name);
-                    loadFromCloudAndRender(); 
+                    document.getElementById('reportDate').style.color = "var(--ink)";
+                    document.getElementById('reportDate').textContent = "Status: Successfully Synced to Cloud";
                 })
                 .catch(err => {
-                    console.warn(err);
-                    alert("Warning: Could not connect to Firebase Cloud (Running locally or blocked). Uploading straight to your screen.");
-                    resetDashboardState();
-                    parseMESData(sanitizedData);
+                    console.warn("Cloud upload bypassed:", err);
                     document.getElementById('reportDate').style.color = "var(--warn)";
-                    updateDropdownAndRender("Status: Local Data Loaded Successfully (Cloud Bypassed)");
+                    document.getElementById('reportDate').textContent = "Status: Saved to Offline Backup (Cloud Bypassed)";
                 });
+
             } catch (error) {
                 console.error(error);
                 alert('Error processing the file. If you selected the file from Google Drive, please copy it to your Desktop first and re-upload.');
@@ -433,12 +454,15 @@
         if(!confirm("⚠️ WARNING: This will permanently DELETE ALL data in the cloud for ALL users. Are you sure?")) return;
         
         document.getElementById('reportDate').textContent = "Status: Deleting all cloud data...";
+        localStorage.removeItem("QC_Offline_Backup");
+
         fetch(FIREBASE_URL, { method: 'DELETE' }).then(() => {
             alert("All cloud data has been successfully cleared!");
             location.reload();
         }).catch(err => {
             alert("Failed to delete data. Check network connection.");
-            document.getElementById('reportDate').textContent = "Status: Delete Failed";
+            document.getElementById('reportDate').textContent = "Status: Local Data Cleared (Cloud Delete Failed)";
+            setTimeout(() => location.reload(), 1500);
         });
     });
 
@@ -493,6 +517,7 @@
                     }
                 }
                 if (hasChanges || Object.keys(newData).length === 0) {
+                    localStorage.setItem("QC_Offline_Backup", JSON.stringify(newData)); 
                     fetch(FIREBASE_URL, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -529,33 +554,34 @@
             const aGradeRate = shift.total > 0 ? ((shift.a / shift.total) * 100).toFixed(2) + '%' : '0.00%';
             const dateCell = index === 0 ? `<td rowspan="6">${selectedDate}</td>` : '';
             
-            let displayModel = shift.total > 0 ? (shift.model || '') : '';
+            let displayModel = shift.model || '';
             rowsHtml += `<tr>${dateCell}<td>${time}</td><td>${displayModel}</td><td>${shift.total}</td><td>${shift.a}</td><td>${shift.n}</td><td>${shift.f}</td><td>${aGradeRate}</td><td class="desc">${desc}</td></tr>`;
         });
-        return `<div class="table-container" style="margin-bottom: 24px; padding: 10px; background: var(--surface);">
-            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
-                <table class="excel-table" style="width: 100%;">
-                    <thead>
-                        <tr class="title-row"><th colspan="9" style="background-color: ${getLineColor(line)};">${line} 检验情况汇总 (Inspection Summary)</th></tr>
-                        <tr class="header-row" style="background-color: ${getSubHeaderColor(line)};">
-                            <th style="background-color: ${getSubHeaderColor(line)};">日期<br>Date</th><th style="background-color: ${getSubHeaderColor(line)};">时间<br>Time</th><th style="background-color: ${getSubHeaderColor(line)};">型号<br>Model</th>
-                            <th style="background-color: ${getSubHeaderColor(line)};">总产出<br>Total Output</th><th style="background-color: ${getSubHeaderColor(line)};">A</th><th style="background-color: ${getSubHeaderColor(line)};">注意<br>Attention</th><th style="background-color: ${getSubHeaderColor(line)};">F</th>
-                            <th style="background-color: ${getSubHeaderColor(line)};">A品率 (%)<br>Peratusan A grade</th><th style="width: 50%; background-color: ${getSubHeaderColor(line)};">判注意描述 Attention Abnormality Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rowsHtml}</tbody>
-                </table>
-            </div>
+        return `<div class="table-container" style="margin-bottom: 24px;">
+            <table class="excel-table">
+                <thead>
+                    <tr class="title-row"><th colspan="9" style="background-color: ${getLineColor(line)};">${line} 检验情况汇总 (Inspection Summary)</th></tr>
+                    <tr class="header-row" style="background-color: ${getSubHeaderColor(line)};">
+                        <th style="background-color: ${getSubHeaderColor(line)};">日期<br>Date</th><th style="background-color: ${getSubHeaderColor(line)};">时间<br>Time</th><th style="background-color: ${getSubHeaderColor(line)};">型号<br>Model</th>
+                        <th style="background-color: ${getSubHeaderColor(line)};">总产出<br>Total Output</th><th style="background-color: ${getSubHeaderColor(line)};">A</th><th style="background-color: ${getSubHeaderColor(line)};">注意<br>Attention</th><th style="background-color: ${getSubHeaderColor(line)};">F</th>
+                        <th style="background-color: ${getSubHeaderColor(line)};">A品率 (%)<br>Peratusan A grade</th><th style="width: 50%; background-color: ${getSubHeaderColor(line)};">判注意描述 Attention Abnormality Description</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
         </div>`;
     }
 
     function generateChartsHTML(line) {
-        return `<div class="table-container" style="margin-bottom: 24px; padding: 10px; background: var(--surface);">
-            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
-                <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="card" style="width: 100%; box-sizing: border-box;"><h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2><div class="cv"><canvas id="trendChart_${line}"></canvas></div></div>
-                    <div class="card" style="width: 100%; box-sizing: border-box;"><h2>${line} - Top Defects Pareto (不良排行)</h2><div class="cv"><canvas id="paretoChart_${line}"></canvas></div></div>
-                </div>
+        return `
+        <div class="grid" style="margin-bottom: 24px;">
+            <div class="card">
+                <h2>${line} - 4-Hour Interval Defect Trend (4小时不良趋势)</h2>
+                <div class="cv"><canvas id="trendChart_${line}"></canvas></div>
+            </div>
+            <div class="card">
+                <h2>${line} - Top Defects Pareto (不良排行)</h2>
+                <div class="cv"><canvas id="paretoChart_${line}"></canvas></div>
             </div>
         </div>`;
     }
@@ -595,19 +621,20 @@
             });
         }
 
-        return `<div class="table-container" style="margin-bottom: 32px; padding: 10px; background: var(--surface);">
-            <div style="width: 1380px; min-width: 1380px; max-width: 1380px; margin: 0 auto;">
-                <div class="grid" style="margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="card" style="width: 100%; box-sizing: border-box;">
-                        <h2>${line} - Overall Grade Breakdown (总评占比)</h2>
-                        <div class="cv" style="height: 350px;"><canvas id="gradePie_${line}"></canvas></div>
-                    </div>
-                    <div class="card" style="width: 100%; box-sizing: border-box;">
-                        <h2>${line} - Station Remarks Breakdown (备注占比)</h2>
-                        <div class="cv" style="height: 350px;"><canvas id="remarkPie_${line}"></canvas></div>
-                    </div>
+        return `
+        <div style="margin-bottom: 32px;">
+            <div class="grid" style="margin-bottom: 16px;">
+                <div class="card">
+                    <h2>${line} - Overall Grade Breakdown (总评占比)</h2>
+                    <div class="cv" style="height: 280px;"><canvas id="gradePie_${line}"></canvas></div>
                 </div>
-                <table class="excel-table" style="width: 100%;">
+                <div class="card">
+                    <h2>${line} - Station Remarks Breakdown (备注占比)</h2>
+                    <div class="cv" style="height: 280px;"><canvas id="remarkPie_${line}"></canvas></div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="excel-table">
                     <thead>
                         <tr class="title-row"><th colspan="${2 + intervals.length + 1}" style="background-color: ${getLineColor(line)};">${line} - Overall Summary Details (总体汇总详情)</th></tr>
                         <tr class="header-row" style="background-color: ${getSubHeaderColor(line)};">
@@ -652,73 +679,12 @@
         chartsCon.innerHTML = '';
         summaryCon.innerHTML = '';
         
-        let finalTablesToRender = [];
-        
+        let hasData = false;
         selectedLines.forEach(line => {
-            let lineData = activeData[line];
-            if (!lineData) {
-                lineData = { shifts: Array.from({length: 6}, () => ({ total: 0, models: {} })) };
-            }
-            
-            // Smart Auto-Fill Logic
-            let lastActiveIndex = -1;
-            for(let i = 0; i < 6; i++) {
-                let shiftTotal = 0;
-                Object.values(lineData.shifts[i].models).forEach(m => shiftTotal += m.total);
-                if (shiftTotal > 0) lastActiveIndex = i;
-            }
-            
-            let allModels = new Set();
-            lineData.shifts.forEach(s => Object.keys(s.models).forEach(m => allModels.add(m)));
-            let modelArray = Array.from(allModels).filter(m => m !== "" && m !== "Unknown");
-            
-            let forcedModel = "";
-            if (modelArray.length > 0) {
-                forcedModel = modelArray[0]; 
-            }
-            
-            let tableObj = {
-                title: line,
-                model: forcedModel,
-                shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: forcedModel }))
-            };
-            
-            let prevModelTracker = forcedModel;
-            
-            for (let i = 0; i < 6; i++) {
-                let rawShift = lineData.shifts[i];
-                let tShift = tableObj.shifts[i];
-                
-                let modelsInShift = Object.keys(rawShift.models).filter(m => m !== "" && m !== "Unknown");
-                
-                if (modelsInShift.length === 0) {
-                    if (i < lastActiveIndex) {
-                        tShift.model = prevModelTracker; // No popup, silent gap fill
-                    } else {
-                        tShift.model = ""; // Future shift
-                    }
-                } else {
-                    let activeModel = modelsInShift[0];
-                    let md = rawShift.models[activeModel];
-                    tShift.total += md.total;
-                    tShift.a += md.a;
-                    tShift.n += md.n;
-                    tShift.f += md.f;
-                    for (let d in md.defects) {
-                        if(!tShift.defects[d]) tShift.defects[d] = [];
-                        tShift.defects[d].push(...md.defects[d]);
-                    }
-                    for (let r in md.stationRemarks) {
-                        tShift.stationRemarks[r] = (tShift.stationRemarks[r] || 0) + md.stationRemarks[r];
-                    }
-                    prevModelTracker = activeModel;
-                    tShift.model = prevModelTracker;
-                }
-            }
-            finalTablesToRender.push(tableObj);
+            if (activeData[line]) hasData = true;
         });
 
-        if (finalTablesToRender.every(t => t.shifts.every(s => s.total === 0))) {
+        if (!hasData) {
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
@@ -731,16 +697,49 @@
         chartsSec.style.display = 'block';
         summarySec.style.display = 'block';
 
-        finalTablesToRender.forEach(tableItem => {
-            let line = tableItem.title;
-            let lineData = tableItem;
+        // ----------------------------------------------------
+        // SILENT AUTO-FILL LOGIC: ZERO POPUPS EVER!
+        // ----------------------------------------------------
+        selectedLines.forEach(line => {
+            if (!activeData[line]) {
+                activeData[line] = {
+                    model: "",
+                    shifts: Array.from({length: 6}, () => ({ total: 0, a: 0, n: 0, f: 0, defects: {}, stationRemarks: {}, model: "" }))
+                };
+            }
             
+            let prevModel = activeData[line].model || "";
+            for (let i = 0; i < 6; i++) {
+                let shift = activeData[line].shifts[i];
+                if (shift.total > 0) {
+                    if (shift.model && shift.model !== "") {
+                        prevModel = shift.model;
+                    } else {
+                        shift.model = prevModel;
+                    }
+                } else {
+                    shift.model = ""; // Always blank if 0 output
+                }
+            }
+        });
+        // ----------------------------------------------------
+
+        selectedLines.forEach(line => {
+            if (activeData[line]) {
+                let lineTotal = activeData[line].shifts.reduce((sum, s) => sum + s.total, 0);
+                if(lineTotal === 0) return; // Skip completely empty lines
+                
+                tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, activeData[line], selectedDate));
+                chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
+                summaryCon.insertAdjacentHTML('beforeend', generateSummaryHTML(line, activeData[line]));
+            }
+        });
+
+        selectedLines.forEach(line => {
+            const lineData = activeData[line];
+            if (!lineData) return;
             let lineTotal = lineData.shifts.reduce((sum, s) => sum + s.total, 0);
-            if(lineTotal === 0) return; // Skip totally empty lines
-            
-            tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, lineData, selectedDate));
-            chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
-            summaryCon.insertAdjacentHTML('beforeend', generateSummaryHTML(line, lineData));
+            if(lineTotal === 0) return;
 
             const defectMap = {};
             lineData.shifts.forEach((shift, index) => {
@@ -869,6 +868,7 @@
         const clone = target.cloneNode(true);
         clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none';
         
+        // Target container and grid specifically to force exactly identical width across all 3 screenshots
         const scrollableContainers = clone.querySelectorAll('.table-container');
         scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.border = 'none'; c.style.width = '1400px'; c.style.minWidth = '1400px'; c.style.maxWidth = '1400px'; });
 
@@ -940,6 +940,7 @@
         } catch(e) { btn.textContent = '❌ Error'; setTimeout(() => btn.textContent = originalText, 2000); }
     }
 
+    // Button Bindings
     document.getElementById('copyTableBtn').addEventListener('click', function() { handleCopy('tablesContainer', this); });
     document.getElementById('shareTableBtn').addEventListener('click', function() { handleShare('tablesContainer', this, 'QC_Tables'); });
     document.getElementById('copyChartBtn').addEventListener('click', function() { handleCopy('chartsContainer', this); });
