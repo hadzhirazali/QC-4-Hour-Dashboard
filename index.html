@@ -391,7 +391,6 @@
                 let shiftTotal = lineData ? lineData.shifts[idx].total : 0;
                 
                 if (shiftTotal === 0) {
-                    // Only prompt if the user hasn't explicitly set it or synced it from cloud yet
                     if (globalStore.userDecisions[selectedDate][line][idx] === undefined) {
                         let prevModel = "";
                         if (idx > 0 && globalStore.userDecisions[selectedDate][line][idx-1]) {
@@ -449,7 +448,6 @@
                     return cleanRow;
                 });
 
-                // Render locally immediately
                 parseMESData(sanitizedData);
                 updateDropdownAndRender();
 
@@ -458,7 +456,6 @@
                     promptForMissingModels(selDate, false);
                 }
 
-                // Sync the full raw dataset AND user decisions to cloud
                 const uploadPayload = { 
                     uploadTime: new Date().toISOString(), 
                     rawData: sanitizedData,
@@ -600,7 +597,7 @@
     document.getElementById('dateSelector').addEventListener('change', () => {
         renderDashboard();
         let selDate = document.getElementById('dateSelector').value;
-        if(selDate) promptForMissingModels(selDate, true); // Sync to cloud if new data is typed
+        if(selDate) promptForMissingModels(selDate, true); 
     });
     
     document.querySelectorAll('#lineToggles input').forEach(cb => { cb.addEventListener('change', renderDashboard); });
@@ -1051,9 +1048,12 @@
     document.getElementById('exportExcelBtn_top').addEventListener('click', exportToExcel);
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
 
+    // ==========================================
+    // NEW WECHAT COPY MESSAGE FUNCTIONALITY
+    // ==========================================
     document.getElementById('copyMessageBtn').addEventListener('click', function() {
         const originalText = this.textContent;
-        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours.\n请参考上方关于过去 4 小时 W1-W4 102 湿法 (MES) 的检验汇总报告。";
+        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours. Please be informed of the above defects, and the related departments need to make improvements.\n请参考以上 W1-W4 102湿法（MES）过去4小时的检验汇总报告。请知悉上述缺陷，相关部门需要进行改善。";
         navigator.clipboard.writeText(msg).then(() => {
             this.textContent = '✅ Copied!';
             setTimeout(() => this.textContent = originalText, 2000);
