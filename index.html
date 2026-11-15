@@ -4,10 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总 (Cloud Live Sync)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Fallback CDN links (auto-switched to jsdelivr + unpkg to bypass Cloudflare blocks) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         :root {
             --bg: #f1f1ee; --surface: #fcfcfb; --ink: #141413; --ink2: #52514e; --ink3: #6b6a64;
@@ -141,20 +140,271 @@
 </script>
 
 <script>
-    try {
-        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
-            Chart.register(ChartDataLabels);
-        }
-    } catch (e) {
-        console.warn("Charts failed to load, running in table-only mode.");
-    }
-
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
     globalStore.userDecisions = window.globalStoreCache.userDecisions;
     const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
-    let chartInstances = [];
     let processedBarcodes = new Set();
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
+
+    // ============================================================================
+    // NATIVE OFFLINE CANVAS CHART ENGINE (Zero External Dependencies / IT-Safe)
+    // ============================================================================
+    function setupCanvas(canvas) {
+        if (!canvas) return null;
+        const dpr = window.devicePixelRatio || 2;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const w = rect.width || 640;
+        const h = rect.height || 300;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, w, h);
+        return { ctx, w, h };
+    }
+
+    function drawEmptyState(ctx, w, h, msg) {
+        ctx.fillStyle = '#f8f8f6';
+        ctx.fillRect(10, 10, w - 20, h - 20);
+        ctx.strokeStyle = '#e0dfda';
+        ctx.strokeRect(10, 10, w - 20, h - 20);
+        ctx.fillStyle = '#6b6a64';
+        ctx.font = '600 14px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(msg, w / 2, h / 2);
+    }
+
+    function drawNativeStackedBar(canvas, labels, datasets) {
+        const env = setupCanvas(canvas);
+        if (!env) return;
+        const { ctx, w, h } = env;
+
+        const totalsPerSlot = labels.map((_, i) => datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0));
+        const maxVal = Math.max(...totalsPerSlot, 0);
+
+        // Draw Legend at top
+        let legX = 50, legY = 14;
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        if (datasets.length === 0) {
+            ctx.fillStyle = '#1baf7a';
+            ctx.fillRect(legX, legY - 5, 12, 10);
+            ctx.fillStyle = '#52514e';
+            ctx.fillText('0 Defects (100% Pass)', legX + 16, legY);
+        } else {
+            datasets.forEach(ds => {
+                const tw = ctx.measureText(ds.label).width + 26;
+                if (legX + tw > w - 20) { legX = 50; legY += 18; }
+                ctx.fillStyle = ds.backgroundColor;
+                ctx.fillRect(legX, legY - 5, 12, 10);
+                ctx.fillStyle = '#141413';
+                ctx.fillText(ds.label, legX + 16, legY);
+                legX += tw;
+            });
+        }
+
+        const padL = 48, padR = 20, padT = legY + 22, padB = 38;
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+        const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.15);
+        const steps = 5;
+
+        // Gridlines & Y-Axis
+        ctx.strokeStyle = '#e7e6e1';
+        ctx.fillStyle = '#52514e';
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        for (let i = 0; i <= steps; i++) {
+            const val = (yMax / steps) * i;
+            const y = padT + plotH - (i / steps) * plotH;
+            ctx.beginPath();
+            ctx.moveTo(padL, y);
+            ctx.lineTo(padL + plotW, y);
+            ctx.stroke();
+            ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), padL - 6, y);
+        }
+
+        // X-Axis & Stacked Bars
+        const slotW = plotW / labels.length;
+        const barW = Math.min(48, slotW * 0.55);
+
+        labels.forEach((lbl, i) => {
+            const cx = padL + i * slotW + slotW / 2;
+            ctx.fillStyle = '#141413';
+            ctx.font = '11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(lbl, cx, padT + plotH + 18);
+
+            let currentBottom = padT + plotH;
+            datasets.forEach(ds => {
+                const val = ds.data[i] || 0;
+                if (val > 0) {
+                    const barH = (val / yMax) * plotH;
+                    ctx.fillStyle = ds.backgroundColor;
+                    ctx.fillRect(cx - barW / 2, currentBottom - barH, barW, barH);
+                    currentBottom -= barH;
+                }
+            });
+
+            if (totalsPerSlot[i] > 0) {
+                ctx.fillStyle = '#141413';
+                ctx.font = 'bold 11px system-ui, sans-serif';
+                ctx.fillText(totalsPerSlot[i], cx, currentBottom - 8);
+            }
+        });
+    }
+
+    function drawNativePareto(canvas, labels, counts, cumPct) {
+        const env = setupCanvas(canvas);
+        if (!env) return;
+        const { ctx, w, h } = env;
+
+        if (!labels || labels.length === 0) {
+            drawEmptyState(ctx, w, h, '✅ No Attention Defects Recorded (无判注意不良)');
+            return;
+        }
+
+        const padL = 45, padR = 48, padT = 32, padB = 55;
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+        const maxCount = Math.max(...counts, 1);
+        const yMax = Math.ceil(maxCount * 1.15);
+        const steps = 5;
+
+        // Gridlines & Left/Right Axes
+        ctx.font = '11px system-ui, sans-serif';
+        for (let i = 0; i <= steps; i++) {
+            const y = padT + plotH - (i / steps) * plotH;
+            ctx.strokeStyle = '#e7e6e1';
+            ctx.beginPath();
+            ctx.moveTo(padL, y);
+            ctx.lineTo(padL + plotW, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#52514e';
+            ctx.textAlign = 'right';
+            const leftVal = (yMax / steps) * i;
+            ctx.fillText(Number.isInteger(leftVal) ? leftVal : leftVal.toFixed(1), padL - 6, y);
+
+            ctx.textAlign = 'left';
+            ctx.fillText(((100 / steps) * i).toFixed(0) + '%', padL + plotW + 6, y);
+        }
+
+        const slotW = plotW / labels.length;
+        const barW = Math.min(50, slotW * 0.55);
+        const linePts = [];
+
+        labels.forEach((lbl, i) => {
+            const cx = padL + i * slotW + slotW / 2;
+            const val = counts[i];
+            const barH = (val / yMax) * plotH;
+            const by = padT + plotH - barH;
+
+            ctx.fillStyle = '#eda100';
+            ctx.fillRect(cx - barW / 2, by, barW, barH);
+
+            ctx.fillStyle = '#141413';
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(val, cx, by - 7);
+
+            // Truncate long defect names cleanly
+            const shortLbl = lbl.length > 14 ? lbl.substring(0, 12) + '..' : lbl;
+            ctx.font = '11px system-ui, sans-serif';
+            ctx.fillText(shortLbl, cx, padT + plotH + 18);
+
+            const py = padT + plotH - (cumPct[i] / 100) * plotH;
+            linePts.push({ x: cx, y: py, pct: cumPct[i] });
+        });
+
+        // Cumulative Line
+        ctx.strokeStyle = '#141413';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        linePts.forEach((pt, i) => {
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+
+        linePts.forEach(pt => {
+            ctx.fillStyle = '#141413';
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    function drawNativePie(canvas, labels, values, sliceColors) {
+        const env = setupCanvas(canvas);
+        if (!env) return;
+        const { ctx, w, h } = env;
+
+        const total = values.reduce((a, b) => a + b, 0);
+        if (total === 0) {
+            drawEmptyState(ctx, w, h, 'No Data Available');
+            return;
+        }
+
+        const cx = w * 0.36;
+        const cy = h * 0.5;
+        const radius = Math.min(cx - 30, cy - 25, 105);
+
+        let startAngle = -Math.PI / 2;
+        values.forEach((val, i) => {
+            if (val <= 0) return;
+            const sliceAngle = (val / total) * Math.PI * 2;
+            const endAngle = startAngle + sliceAngle;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = sliceColors[i % sliceColors.length];
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const pct = (val * 100 / total);
+            if (pct >= 3) {
+                const midAngle = startAngle + sliceAngle / 2;
+                const tx = cx + Math.cos(midAngle) * (radius * 0.65);
+                const ty = cy + Math.sin(midAngle) * (radius * 0.65);
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2.5;
+                ctx.font = 'bold 11px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const txt = pct.toFixed(1) + '%';
+                ctx.strokeText(txt, tx, ty);
+                ctx.fillText(txt, tx, ty);
+            }
+            startAngle = endAngle;
+        });
+
+        // Right-side Legend with counts & percentages
+        const legX = w * 0.66;
+        let legY = Math.max(24, cy - (labels.length * 22) / 2);
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+
+        labels.forEach((lbl, i) => {
+            const val = values[i] || 0;
+            const pct = ((val / total) * 100).toFixed(2) + '%';
+            ctx.fillStyle = sliceColors[i % sliceColors.length];
+            ctx.fillRect(legX, legY - 6, 12, 12);
+            ctx.fillStyle = '#141413';
+            ctx.fillText(`${lbl}: ${val} (${pct})`, legX + 18, legY);
+            legY += 22;
+        });
+    }
 
     function getLineColor(lineStr) {
         if (lineStr.startsWith("W1")) return "#f4b183"; 
@@ -179,10 +429,6 @@
         globalStore.dates = [];
         globalStore.data_by_date = {};
         processedBarcodes.clear();
-        if (chartInstances && chartInstances.length > 0) {
-            chartInstances.forEach(chart => { if(chart) chart.destroy(); });
-        }
-        chartInstances = [];
     }
 
     function parseMESData(dataArray) {
@@ -356,11 +602,12 @@
             })
             .catch(err => {
                 console.warn(err);
-                document.getElementById('reportDate').textContent = "Status: Cloud Sync Failed";
+                document.getElementById('reportDate').textContent = "Status: Ready for Local Upload (Cloud Offline)";
             });
     }
 
     window.addEventListener('DOMContentLoaded', () => { loadFromCloudAndRender(); });
+    window.addEventListener('resize', () => { if (document.getElementById('dateSelector').value) renderDashboard(); });
     document.getElementById('syncCloudBtn').addEventListener('click', loadFromCloudAndRender);
 
     function promptForMissingModels(selectedDate, syncToCloud = false) {
@@ -749,10 +996,6 @@
         const checkboxes = document.querySelectorAll('#lineToggles input[type="checkbox"]');
         const selectedLines = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
-        if (chartInstances && chartInstances.length > 0) {
-            chartInstances.forEach(chart => { if (chart) chart.destroy(); });
-        }
-        chartInstances = [];
         tablesCon.innerHTML = '';
         chartsCon.innerHTML = '';
         summaryCon.innerHTML = '';
@@ -839,22 +1082,11 @@
             const datasets = Object.keys(defectMap).map((name, index) => ({
                 label: name,
                 data: defectMap[name],
-                backgroundColor: colors[index % colors.length],
-                stack: 'Stack 0'
+                backgroundColor: colors[index % colors.length]
             }));
 
-            const ctxTrend = document.getElementById(`trendChart_${line}`);
-            if (ctxTrend && typeof Chart !== 'undefined') {
-                chartInstances.push(new Chart(ctxTrend.getContext('2d'), {
-                    type: 'bar',
-                    data: { labels: globalStore.intervals, datasets: datasets },
-                    options: { 
-                        responsive: true, maintainAspectRatio: false, animation: false, 
-                        plugins: { legend: { position: 'top' }, datalabels: { display: false } },
-                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Defect Count' } } }
-                    }
-                }));
-            }
+            // 1. Draw 4-Hour Defect Trend Bar Chart (Native Canvas)
+            drawNativeStackedBar(document.getElementById(`trendChart_${line}`), globalStore.intervals, datasets);
 
             let totals = Object.keys(defectMap).map(name => ({
                 name: name,
@@ -869,58 +1101,26 @@
                 return (cumulative / (totalDefects || 1)) * 100;
             });
 
-            const ctxPareto = document.getElementById(`paretoChart_${line}`);
-            if (ctxPareto && typeof Chart !== 'undefined') {
-                chartInstances.push(new Chart(ctxPareto.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: totals.map(item => item.name),
-                        datasets: [
-                            { type: 'line', label: 'Cumulative %', data: paretoLine, borderColor: '#141413', backgroundColor: '#141413', yAxisID: 'y1', tension: 0.1, fill: false },
-                            { type: 'bar', label: 'Defect Count', data: paretoData, backgroundColor: '#eda100', yAxisID: 'y' }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false, animation: false,
-                        plugins: { datalabels: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, position: 'left' },
-                            y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v.toFixed(2) + '%' } }
-                        }
-                    }
-                }));
-            }
+            // 2. Draw Top Defects Pareto Chart (Native Canvas)
+            drawNativePareto(
+                document.getElementById(`paretoChart_${line}`),
+                totals.map(item => item.name),
+                paretoData,
+                paretoLine
+            );
 
             let totalA = 0, totalN = 0, totalF = 0;
             lineData.shifts.forEach(s => { 
                 s.rows.forEach(r => { totalA += r.a; totalN += r.n; totalF += r.f; });
             });
-            
-            const pieDataLabelConfig = {
-                formatter: (value, ctx) => {
-                    let sum = 0;
-                    ctx.chart.data.datasets[0].data.forEach(data => { sum += data; });
-                    if (sum === 0 || value === 0) return null;
-                    return (value * 100 / sum).toFixed(2) + "%";
-                },
-                color: '#fff', font: { weight: 'bold', size: 11 },
-                textStrokeColor: '#000', textStrokeWidth: 2,
-                anchor: 'center',
-                align: (context) => context.dataIndex % 2 === 0 ? 'end' : 'start',
-                offset: 25 
-            };
 
-            const ctxGrade = document.getElementById(`gradePie_${line}`);
-            if (ctxGrade && typeof Chart !== 'undefined') {
-                chartInstances.push(new Chart(ctxGrade.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: ['A', '注意 (Attention)', 'F'],
-                        datasets: [{ data: [totalA, totalN, totalF], backgroundColor: ['#a9d08e', '#eda100', '#e87ba4'] }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' }, datalabels: pieDataLabelConfig } }
-                }));
-            }
+            // 3. Draw Grade Pie Chart (Native Canvas)
+            drawNativePie(
+                document.getElementById(`gradePie_${line}`),
+                ['A', '注意 (Attention)', 'F'],
+                [totalA, totalN, totalF],
+                ['#a9d08e', '#eda100', '#e87ba4']
+            );
 
             let aggRemarks = {};
             lineData.shifts.forEach(s => {
@@ -935,17 +1135,13 @@
             const remarkVals = Object.values(aggRemarks);
             const remarkColors = remarkKeys.map((_, i) => colors[i % colors.length]);
 
-            const ctxRemark = document.getElementById(`remarkPie_${line}`);
-            if (ctxRemark && remarkKeys.length > 0 && typeof Chart !== 'undefined') {
-                chartInstances.push(new Chart(ctxRemark.getContext('2d'), {
-                    type: 'pie',
-                    data: {
-                        labels: remarkKeys,
-                        datasets: [{ data: remarkVals, backgroundColor: remarkColors }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' }, datalabels: pieDataLabelConfig } }
-                }));
-            }
+            // 4. Draw Station Remarks Pie Chart (Native Canvas)
+            drawNativePie(
+                document.getElementById(`remarkPie_${line}`),
+                remarkKeys,
+                remarkVals,
+                remarkColors
+            );
         });
     }
 
@@ -1048,9 +1244,6 @@
     document.getElementById('exportExcelBtn_top').addEventListener('click', exportToExcel);
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
 
-    // ==========================================
-    // NEW WECHAT COPY MESSAGE FUNCTIONALITY
-    // ==========================================
     document.getElementById('copyMessageBtn').addEventListener('click', function() {
         const originalText = this.textContent;
         const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours. Please be informed of the above defects, and the related departments need to make improvements.\n请参考以上 W1-W4 102湿法（MES）过去4小时的检验汇总报告。请知悉上述缺陷，相关部门需要进行改善。";
@@ -1129,7 +1322,7 @@
                 if(lineTotal === 0 && !hasManualModels) return; 
 
                 let ws_data = [];
-                ws['!merges'] = [ { s: {r: 0, c: 0}, e: {r: 0, c: 8} } ]; 
+                let merges = [ { s: {r: 0, c: 0}, e: {r: 0, c: 8} } ]; 
                 
                 let titleRow = [];
                 for(let i = 0; i < 9; i++) {
@@ -1184,19 +1377,19 @@
                     });
                     
                     if (rowsInShift > 1) {
-                        ws['!merges'].push({ s: {r: timeMergeStartRow, c: 1}, e: {r: timeMergeStartRow + rowsInShift - 1, c: 1} });
+                        merges.push({ s: {r: timeMergeStartRow, c: 1}, e: {r: timeMergeStartRow + rowsInShift - 1, c: 1} });
                     }
                 });
                 
                 if (totalDataRows > 1) {
-                    ws['!merges'].push({ s: {r: dateMergeStartRow, c: 0}, e: {r: dateMergeStartRow + totalDataRows - 1, c: 0} });
+                    merges.push({ s: {r: dateMergeStartRow, c: 0}, e: {r: dateMergeStartRow + totalDataRows - 1, c: 0} });
                 }
 
                 let summarySpaceRow = dateMergeStartRow + totalDataRows;
                 ws_data.push([]); 
                 
                 let summaryTitleRow = summarySpaceRow + 1;
-                ws['!merges'].push({ s: {r: summaryTitleRow, c: 0}, e: {r: summaryTitleRow, c: 8} });
+                merges.push({ s: {r: summaryTitleRow, c: 0}, e: {r: summaryTitleRow, c: 8} });
                 
                 ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: getExcelColor(line) } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
                 
@@ -1204,7 +1397,7 @@
                 ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
 
                 let gradeStartRow = summaryTitleRow + 2;
-                ws['!merges'].push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 2, c: 0} });
+                merges.push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 2, c: 0} });
 
                 let aRow = [{v:"Comprehensive Grade (总评)"}, {v:"A"}];
                 let nRow = [{v:""}, {v:"注意 (Attention)"}];
@@ -1240,7 +1433,7 @@
                     ws_data.push(emptyRem.map(cell => ({v: cell.v, s: s_fmt})));
                 } else {
                     if(remarks.length > 1) {
-                        ws['!merges'].push({ s: {r: remarkStartRow, c: 0}, e: {r: remarkStartRow + remarks.length - 1, c: 0} });
+                        merges.push({ s: {r: remarkStartRow, c: 0}, e: {r: remarkStartRow + remarks.length - 1, c: 0} });
                     }
                     remarks.forEach((rm, idx) => {
                         let rRow = [{v: idx===0 ? "Station Remarks (备注)" : ""}, {v: rm}];
@@ -1257,6 +1450,7 @@
                 }
 
                 const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                ws['!merges'] = merges;
                 
                 let safeSheetName = line.replace(/[\[\]\*?:\/]/g, "").substring(0, 31);
                 ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
