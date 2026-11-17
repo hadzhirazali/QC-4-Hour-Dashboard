@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title>4小时 QC 检验情况汇总 (Cloud Live Sync)</title>
-    <!-- Fallback CDN links (auto-switched to jsdelivr + unpkg to bypass Cloudflare blocks) -->
+    <!-- Fallback CDN links -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
@@ -95,7 +95,7 @@
     </div>
 
     <div id="tablesSection" style="display: none;">
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
             <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
             <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Tables Image (Mobile)</button>
             <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Tables (PC)</button>
@@ -104,7 +104,7 @@
     </div>
 
     <div id="chartsSection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
             <button id="exportExcelBtn_bottom" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
             <button id="shareChartBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Charts Image (Mobile)</button>
             <button id="copyChartBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Charts (PC)</button>
@@ -113,9 +113,10 @@
     </div>
 
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
             <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Summary Image (Mobile)</button>
             <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Summary (PC)</button>
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); border-color: var(--ink); color: #fff;">⬆️ Back to Top (返回顶部)</button>
         </div>
         <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
@@ -142,12 +143,41 @@
 <script>
     let globalStore = JSON.parse(document.getElementById('qc-data').textContent);
     globalStore.userDecisions = window.globalStoreCache.userDecisions;
-    const colors = ['#e87ba4', '#eb6834', '#eda100', '#1baf7a', '#2a78d6', '#4a3aa7', '#6b6a64'];
     let processedBarcodes = new Set();
+    let currentRenderedTables = [];
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
     // ============================================================================
-    // NATIVE OFFLINE CANVAS CHART ENGINE (Zero External Dependencies / IT-Safe)
+    // VIBRANT COLOR HASH GENERATOR (Guarantees bright, distinct colors)
+    // ============================================================================
+    const vibrantColors = [
+        '#e87ba4', // Pink
+        '#eb6834', // Orange
+        '#eda100', // Yellow
+        '#1baf7a', // Green
+        '#2a78d6', // Blue
+        '#4a3aa7', // Purple
+        '#00a99d', // Teal
+        '#f15a24', // Bright Red-Orange
+        '#8cc63f', // Lime Green
+        '#29abe2', // Light Blue
+        '#ed1e79', // Magenta
+        '#662d91', // Dark Purple
+        '#009245', // Dark Green
+        '#c1272d', // Red
+        '#fbb03b'  // Bright Gold
+    ];
+
+    function getDefectColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return vibrantColors[Math.abs(hash) % vibrantColors.length];
+    }
+
+    // ============================================================================
+    // NATIVE OFFLINE CANVAS CHART ENGINE (1:1 Circular Pies & Thicker Bars)
     // ============================================================================
     function setupCanvas(canvas) {
         if (!canvas) return null;
@@ -165,16 +195,16 @@
         return { ctx, w, h };
     }
 
-    function drawEmptyState(ctx, w, h, msg) {
+    function drawEmptyState(ctx, x, y, w, h, msg) {
         ctx.fillStyle = '#f8f8f6';
-        ctx.fillRect(10, 10, w - 20, h - 20);
+        ctx.fillRect(x + 10, y + 10, w - 20, h - 20);
         ctx.strokeStyle = '#e0dfda';
-        ctx.strokeRect(10, 10, w - 20, h - 20);
+        ctx.strokeRect(x + 10, y + 10, w - 20, h - 20);
         ctx.fillStyle = '#6b6a64';
-        ctx.font = '600 14px system-ui, -apple-system, sans-serif';
+        ctx.font = '600 13px system-ui, -apple-system, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(msg, w / 2, h / 2);
+        ctx.fillText(msg, x + w / 2, y + h / 2);
     }
 
     function drawNativeStackedBar(canvas, labels, datasets) {
@@ -185,7 +215,6 @@
         const totalsPerSlot = labels.map((_, i) => datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0));
         const maxVal = Math.max(...totalsPerSlot, 0);
 
-        // Draw Legend at top
         let legX = 50, legY = 14;
         ctx.font = '12px system-ui, sans-serif';
         ctx.textAlign = 'left';
@@ -213,7 +242,6 @@
         const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.15);
         const steps = 5;
 
-        // Gridlines & Y-Axis
         ctx.strokeStyle = '#e7e6e1';
         ctx.fillStyle = '#52514e';
         ctx.font = '11px system-ui, sans-serif';
@@ -228,9 +256,8 @@
             ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), padL - 6, y);
         }
 
-        // X-Axis & Stacked Bars
         const slotW = plotW / labels.length;
-        const barW = Math.min(48, slotW * 0.55);
+        const barW = Math.min(65, slotW * 0.72);
 
         labels.forEach((lbl, i) => {
             const cx = padL + i * slotW + slotW / 2;
@@ -264,7 +291,7 @@
         const { ctx, w, h } = env;
 
         if (!labels || labels.length === 0) {
-            drawEmptyState(ctx, w, h, '✅ No Attention Defects Recorded (无判注意不良)');
+            drawEmptyState(ctx, 0, 0, w, h, '✅ No Attention Defects Recorded (无判注意不良)');
             return;
         }
 
@@ -275,7 +302,6 @@
         const yMax = Math.ceil(maxCount * 1.15);
         const steps = 5;
 
-        // Gridlines & Left/Right Axes
         ctx.font = '11px system-ui, sans-serif';
         for (let i = 0; i <= steps; i++) {
             const y = padT + plotH - (i / steps) * plotH;
@@ -295,7 +321,7 @@
         }
 
         const slotW = plotW / labels.length;
-        const barW = Math.min(50, slotW * 0.55);
+        const barW = Math.min(65, slotW * 0.72);
         const linePts = [];
 
         labels.forEach((lbl, i) => {
@@ -312,7 +338,6 @@
             ctx.textAlign = 'center';
             ctx.fillText(val, cx, by - 7);
 
-            // Truncate long defect names cleanly
             const shortLbl = lbl.length > 14 ? lbl.substring(0, 12) + '..' : lbl;
             ctx.font = '11px system-ui, sans-serif';
             ctx.fillText(shortLbl, cx, padT + plotH + 18);
@@ -321,7 +346,6 @@
             linePts.push({ x: cx, y: py, pct: cumPct[i] });
         });
 
-        // Cumulative Line
         ctx.strokeStyle = '#141413';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -339,20 +363,19 @@
         });
     }
 
-    function drawNativePie(canvas, labels, values, sliceColors) {
-        const env = setupCanvas(canvas);
-        if (!env) return;
-        const { ctx, w, h } = env;
-
+    // Direct 1:1 Circular Pie Renderer (Used on-screen AND in WeChat Export so pies NEVER squish!)
+    function drawPieInRect(ctx, rx, ry, rw, rh, labels, values, sliceColors, isCompact = false) {
         const total = values.reduce((a, b) => a + b, 0);
         if (total === 0) {
-            drawEmptyState(ctx, w, h, 'No Data Available');
+            drawEmptyState(ctx, rx, ry, rw, rh, 'No Data Available');
             return;
         }
 
-        const cx = w * 0.36;
-        const cy = h * 0.5;
-        const radius = Math.min(cx - 30, cy - 25, 105);
+        const cx = rx + rw * (isCompact ? 0.31 : 0.36);
+        const cy = ry + rh * 0.5;
+        const maxRadX = (cx - rx) - 14;
+        const maxRadY = (rh / 2) - 14;
+        const radius = Math.max(25, Math.min(maxRadX, maxRadY, isCompact ? 80 : 125));
 
         let startAngle = -Math.PI / 2;
         values.forEach((val, i) => {
@@ -371,14 +394,16 @@
             ctx.stroke();
 
             const pct = (val * 100 / total);
-            if (pct >= 3) {
+            if (pct > 0) {
                 const midAngle = startAngle + sliceAngle / 2;
-                const tx = cx + Math.cos(midAngle) * (radius * 0.65);
-                const ty = cy + Math.sin(midAngle) * (radius * 0.65);
+                const textRadius = pct < 5 ? radius * 0.84 : radius * 0.65;
+                const tx = cx + Math.cos(midAngle) * textRadius;
+                const ty = cy + Math.sin(midAngle) * textRadius;
+
                 ctx.fillStyle = '#ffffff';
                 ctx.strokeStyle = '#000000';
                 ctx.lineWidth = 2.5;
-                ctx.font = 'bold 11px system-ui, sans-serif';
+                ctx.font = `bold ${isCompact ? 10 : 12}px system-ui, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 const txt = pct.toFixed(1) + '%';
@@ -388,22 +413,31 @@
             startAngle = endAngle;
         });
 
-        // Right-side Legend with counts & percentages
-        const legX = w * 0.66;
-        let legY = Math.max(24, cy - (labels.length * 22) / 2);
-        ctx.font = '12px system-ui, sans-serif';
+        // Legend on the right with zero distortion
+        const legX = rx + rw * (isCompact ? 0.59 : 0.62);
+        const rowStep = isCompact ? 18 : 22;
+        let legY = Math.max(ry + 16, cy - (labels.length * rowStep) / 2 + rowStep / 2);
+        ctx.font = `${isCompact ? 10.5 : 12}px system-ui, "Noto Sans SC", sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
         labels.forEach((lbl, i) => {
             const val = values[i] || 0;
             const pct = ((val / total) * 100).toFixed(2) + '%';
+            const boxSize = isCompact ? 10 : 12;
             ctx.fillStyle = sliceColors[i % sliceColors.length];
-            ctx.fillRect(legX, legY - 6, 12, 12);
+            ctx.fillRect(legX, legY - boxSize / 2, boxSize, boxSize);
             ctx.fillStyle = '#141413';
-            ctx.fillText(`${lbl}: ${val} (${pct})`, legX + 18, legY);
-            legY += 22;
+            ctx.fillText(`${lbl}: ${val} (${pct})`, legX + boxSize + 5, legY);
+            legY += rowStep;
         });
+    }
+
+    function drawNativePie(canvas, labels, values, sliceColors) {
+        const env = setupCanvas(canvas);
+        if (!env) return;
+        const { ctx, w, h } = env;
+        drawPieInRect(ctx, 0, 0, w, h, labels, values, sliceColors, false);
     }
 
     function getLineColor(lineStr) {
@@ -1043,7 +1077,13 @@
             finalTablesToRender.push(tableObj);
         });
 
-        if (finalTablesToRender.every(t => t.shifts.every(s => s.rows.every(r => r.total === 0 && r.model === "")))) {
+        currentRenderedTables = finalTablesToRender.filter(t => {
+            let lineTotal = t.shifts.reduce((sum, s) => sum + s.rows.reduce((rSum, r) => rSum + r.total, 0), 0);
+            let hasManualModels = t.shifts.some(s => s.rows.some(r => r.model !== ""));
+            return lineTotal > 0 || hasManualModels;
+        });
+
+        if (currentRenderedTables.length === 0) {
             noDataMsg.style.display = 'block';
             tablesSec.style.display = 'none';
             chartsSec.style.display = 'none';
@@ -1056,14 +1096,9 @@
         chartsSec.style.display = 'block';
         summarySec.style.display = 'block';
 
-        finalTablesToRender.forEach(tableItem => {
+        currentRenderedTables.forEach(tableItem => {
             let line = tableItem.title;
             let lineData = tableItem;
-            
-            let lineTotal = lineData.shifts.reduce((sum, s) => sum + s.rows.reduce((rSum, r) => rSum + r.total, 0), 0);
-            let hasManualModels = lineData.shifts.some(s => s.rows.some(r => r.model !== ""));
-            
-            if(lineTotal === 0 && !hasManualModels) return; 
             
             tablesCon.insertAdjacentHTML('beforeend', generateTableHTML(line, lineData, selectedDate));
             chartsCon.insertAdjacentHTML('beforeend', generateChartsHTML(line));
@@ -1079,13 +1114,12 @@
                 });
             });
 
-            const datasets = Object.keys(defectMap).map((name, index) => ({
+            const datasets = Object.keys(defectMap).map((name) => ({
                 label: name,
                 data: defectMap[name],
-                backgroundColor: colors[index % colors.length]
+                backgroundColor: getDefectColor(name)
             }));
 
-            // 1. Draw 4-Hour Defect Trend Bar Chart (Native Canvas)
             drawNativeStackedBar(document.getElementById(`trendChart_${line}`), globalStore.intervals, datasets);
 
             let totals = Object.keys(defectMap).map(name => ({
@@ -1101,7 +1135,6 @@
                 return (cumulative / (totalDefects || 1)) * 100;
             });
 
-            // 2. Draw Top Defects Pareto Chart (Native Canvas)
             drawNativePareto(
                 document.getElementById(`paretoChart_${line}`),
                 totals.map(item => item.name),
@@ -1114,12 +1147,11 @@
                 s.rows.forEach(r => { totalA += r.a; totalN += r.n; totalF += r.f; });
             });
 
-            // 3. Draw Grade Pie Chart (Native Canvas)
             drawNativePie(
                 document.getElementById(`gradePie_${line}`),
                 ['A', '注意 (Attention)', 'F'],
                 [totalA, totalN, totalF],
-                ['#a9d08e', '#eda100', '#e87ba4']
+                ['#a9d08e', '#eda100', '#ff4d4d']
             );
 
             let aggRemarks = {};
@@ -1133,9 +1165,8 @@
 
             const remarkKeys = Object.keys(aggRemarks);
             const remarkVals = Object.values(aggRemarks);
-            const remarkColors = remarkKeys.map((_, i) => colors[i % colors.length]);
+            const remarkColors = remarkKeys.map((rm) => getDefectColor(rm));
 
-            // 4. Draw Station Remarks Pie Chart (Native Canvas)
             drawNativePie(
                 document.getElementById(`remarkPie_${line}`),
                 remarkKeys,
@@ -1145,102 +1176,456 @@
         });
     }
 
-    async function captureElement(elementId) {
-        const target = document.getElementById(elementId);
-        const printContainer = document.createElement('div');
-        printContainer.style.position = 'absolute'; printContainer.style.top = '-9999px'; printContainer.style.left = '0';
-        printContainer.style.width = '1420px'; printContainer.style.background = '#f1f1ee'; printContainer.style.padding = '10px'; printContainer.style.zIndex = '-1';
-        
-        const clone = target.cloneNode(true);
-        clone.style.margin = '0'; clone.style.display = 'block'; clone.style.borderTop = 'none';
-        
-        const scrollableContainers = clone.querySelectorAll('.table-container');
-        scrollableContainers.forEach(c => { c.style.overflow = 'visible'; c.style.border = 'none'; c.style.width = '1400px'; });
-
-        const tables = clone.querySelectorAll('.excel-table');
-        tables.forEach(t => { t.style.width = '1400px'; t.style.minWidth = '1400px'; t.style.maxWidth = '1400px'; t.style.border = '1px solid #141413'; });
-
-        const grids = clone.querySelectorAll('.grid');
-        grids.forEach(g => { g.style.width = '1400px'; g.style.display = 'flex'; g.style.justifyContent = 'space-between'; });
-        
-        const cards = clone.querySelectorAll('.card');
-        cards.forEach(c => { c.style.width = '670px'; c.style.flex = 'none'; });
-
-        const originalCanvases = target.querySelectorAll('canvas');
-        const clonedCanvases = clone.querySelectorAll('canvas');
-        for (let i = 0; i < originalCanvases.length; i++) {
-            const dataURL = originalCanvases[i].toDataURL("image/png");
-            const img = document.createElement('img');
-            img.src = dataURL;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
+    // ============================================================================
+    // UNIFIED 2840px NATIVE EXPORT ENGINE (1:1 Round Pies & Identical WeChat Width)
+    // ============================================================================
+    function wrapCanvasLines(ctx, text, maxWidth) {
+        if (!text) return ['-'];
+        const words = String(text).split(' ');
+        const lines = [];
+        let cur = words[0] || '';
+        for (let i = 1; i < words.length; i++) {
+            const test = cur + ' ' + words[i];
+            if (ctx.measureText(test).width <= maxWidth) {
+                cur = test;
+            } else {
+                lines.push(cur);
+                cur = words[i];
+            }
         }
-        
-        printContainer.appendChild(clone);
-        document.body.appendChild(printContainer);
-        try { return await html2canvas(printContainer, { scale: 2, backgroundColor: '#f1f1ee', windowWidth: 1420 }); } finally { document.body.removeChild(printContainer); }
+        lines.push(cur);
+        return lines;
     }
 
-    async function handleCopy(elementId, btn) {
+    function drawCenteredCell(ctx, x, y, w, h, text, bgColor, isBold = false, align = 'center', fontSize = 13) {
+        if (bgColor) {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(x, y, w, h);
+        }
+        ctx.strokeStyle = '#141413';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = '#141413';
+        ctx.font = `${isBold ? 'bold ' : ''}${fontSize}px system-ui, "Noto Sans SC", sans-serif`;
+        ctx.textBaseline = 'middle';
+
+        const subLines = String(text).split('\n');
+        const lineH = fontSize + 5;
+        const startY = y + (h - (subLines.length - 1) * lineH) / 2;
+
+        subLines.forEach((lineStr, idx) => {
+            const ly = startY + idx * lineH;
+            if (align === 'left') {
+                ctx.textAlign = 'left';
+                ctx.fillText(lineStr, x + 8, ly);
+            } else {
+                ctx.textAlign = 'center';
+                ctx.fillText(lineStr, x + w / 2, ly);
+            }
+        });
+    }
+
+    function buildNativeTablesCanvas() {
+        const selectedDate = document.getElementById('dateSelector').value || '';
+        const logicalW = 1420;
+        const scale = 2; // Locked to 2840px physical width
+        const pad = 15;
+        const tableW = logicalW - pad * 2;
+        const colWidths = [95, 95, 95, 85, 55, 75, 55, 110, 725];
+
+        const tempCanvas = document.createElement('canvas');
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.font = '13px system-ui, "Noto Sans SC", sans-serif';
+
+        let totalLogicalH = pad;
+        const tableLayouts = currentRenderedTables.map(lineData => {
+            const shiftLayouts = lineData.shifts.map(shift => {
+                const rowLayouts = shift.rows.map(r => {
+                    let desc = Object.entries(r.defects).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => {
+                        let uniqueWS = [...new Set(v.filter(w => w !== ''))].map(w => 'WS' + w).join(',');
+                        let wsStr = uniqueWS ? ` ${uniqueWS}` : '';
+                        return `${k}${wsStr} (${v.length})`;
+                    }).join(', ');
+                    if (desc === '') desc = '-';
+                    const wrappedDesc = wrapCanvasLines(tCtx, desc, colWidths[8] - 16);
+                    const rowH = Math.max(48, wrappedDesc.length * 19 + 16);
+                    return { r, wrappedDesc, rowH };
+                });
+                const shiftH = rowLayouts.reduce((s, rl) => s + rl.rowH, 0);
+                return { rowLayouts, shiftH };
+            });
+            const dataH = shiftLayouts.reduce((s, sl) => s + sl.shiftH, 0);
+            const tableTotalH = 38 + 46 + dataH;
+            totalLogicalH += tableTotalH + 22;
+            return { line: lineData.title, shiftLayouts, dataH, tableTotalH };
+        });
+
+        const master = document.createElement('canvas');
+        master.width = logicalW * scale;
+        master.height = totalLogicalH * scale;
+        const ctx = master.getContext('2d');
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = '#f1f1ee';
+        ctx.fillRect(0, 0, logicalW, totalLogicalH);
+
+        let curY = pad;
+        const headers = [
+            "日期\nDate", "时间\nTime", "型号\nModel", "总产出\nTotal Output",
+            "A", "注意\nAttention", "F", "A品率 (%)\nPeratusan A",
+            "判注意描述 Attention Abnormality Description"
+        ];
+
+        tableLayouts.forEach(tl => {
+            const x0 = pad;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x0, curY, tableW, tl.tableTotalH);
+
+            drawCenteredCell(ctx, x0, curY, tableW, 38, `${tl.line} 检验情况汇总 (Inspection Summary)`, getLineColor(tl.line), true, 'center', 15);
+            curY += 38;
+
+            let cx = x0;
+            headers.forEach((hText, cIdx) => {
+                drawCenteredCell(ctx, cx, curY, colWidths[cIdx], 46, hText, getSubHeaderColor(tl.line), false, 'center', 12);
+                cx += colWidths[cIdx];
+            });
+            curY += 46;
+
+            drawCenteredCell(ctx, x0, curY, colWidths[0], tl.dataH, selectedDate, '#ffffff', false, 'center', 13);
+
+            let shiftY = curY;
+            tl.shiftLayouts.forEach((sl, sIdx) => {
+                const timeStr = globalStore.intervals[sIdx];
+                drawCenteredCell(ctx, x0 + colWidths[0], shiftY, colWidths[1], sl.shiftH, timeStr, '#ffffff', false, 'center', 13);
+
+                let rowY = shiftY;
+                sl.rowLayouts.forEach(rl => {
+                    const r = rl.r;
+                    const aRate = r.total > 0 ? ((r.a / r.total) * 100).toFixed(2) + '%' : '0.00%';
+                    const vals = [r.model || '', r.total, r.a, r.n, r.f, aRate];
+                    let rcx = x0 + colWidths[0] + colWidths[1];
+                    vals.forEach((v, vIdx) => {
+                        drawCenteredCell(ctx, rcx, rowY, colWidths[vIdx + 2], rl.rowH, String(v), '#ffffff', false, 'center', 13);
+                        rcx += colWidths[vIdx + 2];
+                    });
+                    drawCenteredCell(ctx, rcx, rowY, colWidths[8], rl.rowH, rl.wrappedDesc.join('\n'), '#ffffff', false, 'left', 13);
+                    rowY += rl.rowH;
+                });
+                shiftY += sl.shiftH;
+            });
+
+            curY += tl.dataH + 22;
+        });
+
+        return master;
+    }
+
+    function buildNativeChartsCanvas() {
+        const container = document.getElementById('chartsContainer');
+        const canvases = container.querySelectorAll('canvas');
+        const logicalW = 1420;
+        const scale = 2; // Locked to 2840px physical width
+        const pad = 15;
+        const cardW = (logicalW - pad * 3) / 2;
+        const cardH = 355;
+        const cols = 2;
+        const rows = Math.ceil(canvases.length / cols);
+        const totalLogicalH = pad + rows * (cardH + pad);
+
+        const master = document.createElement('canvas');
+        master.width = logicalW * scale;
+        master.height = totalLogicalH * scale;
+        const ctx = master.getContext('2d');
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = '#f1f1ee';
+        ctx.fillRect(0, 0, logicalW, totalLogicalH);
+
+        canvases.forEach((cv, idx) => {
+            const r = Math.floor(idx / cols);
+            const c = idx % cols;
+            const x = pad + c * (cardW + pad);
+            const y = pad + r * (cardH + pad);
+
+            ctx.fillStyle = '#fcfcfb';
+            ctx.strokeStyle = '#e0dfda';
+            ctx.lineWidth = 1;
+            ctx.fillRect(x, y, cardW, cardH);
+            ctx.strokeRect(x, y, cardW, cardH);
+
+            const card = cv.closest('.card');
+            const titleText = card ? card.querySelector('h2').textContent : `Chart ${idx + 1}`;
+            ctx.fillStyle = '#141413';
+            ctx.font = 'bold 15px system-ui, "Noto Sans SC", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(titleText, x + 18, y + 24);
+
+            ctx.strokeStyle = '#e0dfda';
+            ctx.beginPath();
+            ctx.moveTo(x + 18, y + 42);
+            ctx.lineTo(x + cardW - 18, y + 42);
+            ctx.stroke();
+
+            ctx.drawImage(cv, x + 14, y + 48, cardW - 28, cardH - 60);
+        });
+
+        return master;
+    }
+
+    function buildNativeSummaryCanvas() {
+        const logicalW = 1420;
+        const scale = 2; // Locked to 2840px physical width
+        const pad = 15;
+        const cols = currentRenderedTables.length > 1 ? 2 : 1;
+        const blockW = cols === 2 ? (logicalW - pad * 3) / 2 : (logicalW - pad * 2);
+
+        const blockMeta = currentRenderedTables.map(lineData => {
+            const uniqueRemarks = new Set();
+            const aggRemarks = {};
+            let totalA = 0, totalN = 0, totalF = 0;
+
+            lineData.shifts.forEach(s => {
+                s.rows.forEach(r => {
+                    totalA += r.a;
+                    totalN += r.n;
+                    totalF += r.f;
+                    Object.entries(r.stationRemarks).forEach(([rm, cnt]) => {
+                        uniqueRemarks.add(rm);
+                        aggRemarks[rm] = (aggRemarks[rm] || 0) + cnt;
+                    });
+                });
+            });
+            const remarkList = Array.from(uniqueRemarks).sort();
+            const remarkCount = Math.max(1, remarkList.length);
+            const tableRowsCount = 3 + remarkCount;
+            const blockH = 16 + 240 + 12 + 32 + 34 + tableRowsCount * 30 + 16;
+            return { lineData, remarkList, remarkCount, blockH, totalA, totalN, totalF, aggRemarks };
+        });
+
+        const gridRows = Math.ceil(blockMeta.length / cols);
+        const rowHeights = [];
+        for (let r = 0; r < gridRows; r++) {
+            const b1 = blockMeta[r * cols];
+            const b2 = (cols === 2 && blockMeta[r * cols + 1]) ? blockMeta[r * cols + 1] : null;
+            rowHeights.push(Math.max(b1.blockH, b2 ? b2.blockH : 0));
+        }
+
+        const totalLogicalH = pad + rowHeights.reduce((a, b) => a + b + pad, 0);
+        const master = document.createElement('canvas');
+        master.width = logicalW * scale;
+        master.height = totalLogicalH * scale;
+        const ctx = master.getContext('2d');
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = '#f1f1ee';
+        ctx.fillRect(0, 0, logicalW, totalLogicalH);
+
+        let curGridY = pad;
+        for (let r = 0; r < gridRows; r++) {
+            const rowH = rowHeights[r];
+            for (let c = 0; c < cols; c++) {
+                const idx = r * cols + c;
+                if (idx >= blockMeta.length) break;
+                const bm = blockMeta[idx];
+                const line = bm.lineData.title;
+                const bx = pad + c * (blockW + pad);
+                const by = curGridY;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#141413';
+                ctx.lineWidth = 1;
+                ctx.fillRect(bx, by, blockW, rowH);
+                ctx.strokeRect(bx, by, blockW, rowH);
+
+                const pieCardW = (blockW - 36) / 2;
+                const pieCardH = 240;
+                const pieY = by + 12;
+
+                // Left Pie Card (Drawn directly with 1:1 round radius - never squished!)
+                ctx.fillStyle = '#fcfcfb';
+                ctx.strokeStyle = '#e0dfda';
+                ctx.fillRect(bx + 12, pieY, pieCardW, pieCardH);
+                ctx.strokeRect(bx + 12, pieY, pieCardW, pieCardH);
+                ctx.fillStyle = '#141413';
+                ctx.font = 'bold 12px system-ui, "Noto Sans SC", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${line} - Grade Breakdown (总评占比)`, bx + 20, pieY + 18);
+                drawPieInRect(
+                    ctx,
+                    bx + 12, pieY + 30, pieCardW, pieCardH - 32,
+                    ['A', '注意', 'F'],
+                    [bm.totalA, bm.totalN, bm.totalF],
+                    ['#a9d08e', '#eda100', '#ff4d4d'],
+                    cols === 2
+                );
+
+                // Right Pie Card (Drawn directly with 1:1 round radius - never squished!)
+                const rx = bx + 24 + pieCardW;
+                ctx.fillStyle = '#fcfcfb';
+                ctx.strokeStyle = '#e0dfda';
+                ctx.fillRect(rx, pieY, pieCardW, pieCardH);
+                ctx.strokeRect(rx, pieY, pieCardW, pieCardH);
+                ctx.fillStyle = '#141413';
+                ctx.font = 'bold 12px system-ui, "Noto Sans SC", sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${line} - Remarks Breakdown (备注占比)`, rx + 8, pieY + 18);
+
+                const rKeys = Object.keys(bm.aggRemarks);
+                const rVals = Object.values(bm.aggRemarks);
+                const rCols = rKeys.map(rm => getDefectColor(rm));
+                drawPieInRect(
+                    ctx,
+                    rx, pieY + 30, pieCardW, pieCardH - 32,
+                    rKeys,
+                    rVals,
+                    rCols,
+                    cols === 2
+                );
+
+                // Summary Table below the 2 Pies
+                let ty = pieY + pieCardH + 12;
+                const tw = blockW - 24;
+                const tx = bx + 12;
+                const cWidths = [
+                    tw * 0.16,
+                    tw * 0.14,
+                    tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09,
+                    tw * 0.16
+                ];
+
+                drawCenteredCell(ctx, tx, ty, tw, 32, `${line} - Overall Summary Details (总体汇总详情)`, getLineColor(line), true, 'center', 13);
+                ty += 32;
+
+                const sHeaders = ["Category\n(类别)", "Item\n(项目)", ...globalStore.intervals, "Total\n(总计)"];
+                let scx = tx;
+                sHeaders.forEach((sh, sIdx) => {
+                    drawCenteredCell(ctx, scx, ty, cWidths[sIdx], 34, sh, getSubHeaderColor(line), false, 'center', 10);
+                    scx += cWidths[sIdx];
+                });
+                ty += 34;
+
+                drawCenteredCell(ctx, tx, ty, cWidths[0], 90, "Comprehensive\nGrade (总评)", '#ffffff', false, 'center', 10);
+
+                let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
+                const shiftTotals = bm.lineData.shifts.map(s => {
+                    let sa = 0, sn = 0, sf = 0, st = 0;
+                    s.rows.forEach(row => { sa += row.a; sn += row.n; sf += row.f; st += row.total; });
+                    aTot += sa; nTot += sn; fTot += sf; overallTot += st;
+                    return { sa, sn, sf };
+                });
+
+                const gradeRows = [
+                    { label: 'A', vals: shiftTotals.map(x => x.sa), tot: aTot },
+                    { label: '注意', vals: shiftTotals.map(x => x.sn), tot: nTot },
+                    { label: 'F', vals: shiftTotals.map(x => x.sf), tot: fTot }
+                ];
+
+                gradeRows.forEach(gr => {
+                    let gcx = tx + cWidths[0];
+                    drawCenteredCell(ctx, gcx, ty, cWidths[1], 30, gr.label, '#ffffff', false, 'center', 10);
+                    gcx += cWidths[1];
+                    gr.vals.forEach((v, vIdx) => {
+                        drawCenteredCell(ctx, gcx, ty, cWidths[2 + vIdx], 30, String(v), '#ffffff', false, 'center', 10);
+                        gcx += cWidths[2 + vIdx];
+                    });
+                    const pct = overallTot ? ((gr.tot / overallTot) * 100).toFixed(2) + '%' : '0.00%';
+                    drawCenteredCell(ctx, gcx, ty, cWidths[8], 30, `${gr.tot} (${pct})`, '#ffffff', true, 'center', 10);
+                    ty += 30;
+                });
+
+                drawCenteredCell(ctx, tx, ty, cWidths[0], bm.remarkCount * 30, "Station Remarks\n(备注)", '#ffffff', false, 'center', 10);
+                if (bm.remarkList.length === 0) {
+                    let rcx = tx + cWidths[0];
+                    drawCenteredCell(ctx, rcx, ty, cWidths[1], 30, "-", '#ffffff', false, 'center', 10);
+                    rcx += cWidths[1];
+                    for (let i = 0; i < 6; i++) {
+                        drawCenteredCell(ctx, rcx, ty, cWidths[2 + i], 30, "0", '#ffffff', false, 'center', 10);
+                        rcx += cWidths[2 + i];
+                    }
+                    drawCenteredCell(ctx, rcx, ty, cWidths[8], 30, "0 (0.00%)", '#ffffff', true, 'center', 10);
+                } else {
+                    bm.remarkList.forEach(rm => {
+                        let rcx = tx + cWidths[0];
+                        drawCenteredCell(ctx, rcx, ty, cWidths[1], 30, rm, '#ffffff', false, 'center', 10);
+                        rcx += cWidths[1];
+                        let rmTot = 0;
+                        bm.lineData.shifts.forEach((s, sIdx) => {
+                            let cVal = 0;
+                            s.rows.forEach(row => { cVal += (row.stationRemarks[rm] || 0); });
+                            rmTot += cVal;
+                            drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], 30, String(cVal), '#ffffff', false, 'center', 10);
+                            rcx += cWidths[2 + sIdx];
+                        });
+                        const rPct = overallTot ? ((rmTot / overallTot) * 100).toFixed(2) + '%' : '0.00%';
+                        drawCenteredCell(ctx, rcx, ty, cWidths[8], 30, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 10);
+                        ty += 30;
+                    });
+                }
+            }
+            curGridY += rowH + pad;
+        }
+
+        return master;
+    }
+
+    async function exportUnifiedSection(sectionType, btn, isShare = false) {
         const originalText = btn.textContent;
-        btn.textContent = '📸 Copying...';
+        btn.textContent = '📸 Generating HD...';
         try {
-            const canvas = await captureElement(elementId);
+            if (!currentRenderedTables || currentRenderedTables.length === 0) {
+                throw new Error("No data rendered");
+            }
+            let canvas;
+            if (sectionType === 'tables') canvas = buildNativeTablesCanvas();
+            else if (sectionType === 'charts') canvas = buildNativeChartsCanvas();
+            else if (sectionType === 'summary') canvas = buildNativeSummaryCanvas();
+
+            const reportDate = document.getElementById('dateSelector').value || 'Report';
+            const fileName = `QC_${sectionType}_${reportDate}.png`;
+
             canvas.toBlob(async function(blob) {
+                if (isShare && navigator.canShare) {
+                    const file = new File([blob], fileName, { type: "image/png" });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: fileName });
+                        btn.textContent = '✅ Shared!';
+                        setTimeout(() => btn.textContent = originalText, 2500);
+                        return;
+                    }
+                }
                 try {
                     const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
                     btn.textContent = '✅ Copied!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 } catch (err) {
-                    btn.textContent = '❌ Failed (Use Mobile)';
-                    setTimeout(() => btn.textContent = originalText, 2500);
-                }
-            });
-        } catch(e) {
-            btn.textContent = '❌ Error';
-            setTimeout(() => btn.textContent = originalText, 2000);
-        }
-    }
-
-    async function handleShare(elementId, btn, filePrefix) {
-        const originalText = btn.textContent;
-        btn.textContent = '📸 Generating...';
-        const reportDate = document.getElementById('dateSelector').value || "Report";
-        try {
-            const canvas = await captureElement(elementId);
-            canvas.toBlob(async function(blob) {
-                const fileName = `${filePrefix}_${reportDate}.png`;
-                const file = new File([blob], fileName, { type: "image/png" });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: `QC 4-Hour ${filePrefix}`, text: `QC ${filePrefix} for ${reportDate}` });
-                    btn.textContent = '✅ Shared!';
-                } else {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = fileName;
-                    document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     btn.textContent = '✅ Downloaded!';
+                    setTimeout(() => btn.textContent = originalText, 2500);
                 }
-                setTimeout(() => btn.textContent = originalText, 2500);
             }, "image/png");
-        } catch(e) {
+        } catch (e) {
+            console.error(e);
             btn.textContent = '❌ Error';
             setTimeout(() => btn.textContent = originalText, 2000);
         }
     }
 
-    document.getElementById('copyTableBtn').addEventListener('click', function() { handleCopy('tablesContainer', this); });
-    document.getElementById('shareTableBtn').addEventListener('click', function() { handleShare('tablesContainer', this, 'QC_Tables'); });
-    document.getElementById('copyChartBtn').addEventListener('click', function() { handleCopy('chartsContainer', this); });
-    document.getElementById('shareChartBtn').addEventListener('click', function() { handleShare('chartsContainer', this, 'QC_Charts'); });
-    document.getElementById('copySummaryBtn').addEventListener('click', function() { handleCopy('summaryContainer', this); });
-    document.getElementById('shareSummaryBtn').addEventListener('click', function() { handleShare('summaryContainer', this, 'QC_Summary'); });
+    document.getElementById('copyTableBtn').addEventListener('click', function() { exportUnifiedSection('tables', this, false); });
+    document.getElementById('shareTableBtn').addEventListener('click', function() { exportUnifiedSection('tables', this, true); });
+    document.getElementById('copyChartBtn').addEventListener('click', function() { exportUnifiedSection('charts', this, false); });
+    document.getElementById('shareChartBtn').addEventListener('click', function() { exportUnifiedSection('charts', this, true); });
+    document.getElementById('copySummaryBtn').addEventListener('click', function() { exportUnifiedSection('summary', this, false); });
+    document.getElementById('shareSummaryBtn').addEventListener('click', function() { exportUnifiedSection('summary', this, true); });
     document.getElementById('exportExcelBtn_top').addEventListener('click', exportToExcel);
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
 
@@ -1394,7 +1779,7 @@
                 ws_data.push([{ v: `${line} - Overall Summary Details (总体汇总详情)`, s: { fill: { fgColor: { rgb: getExcelColor(line) } }, font: { bold: true, sz: 12 }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } }]);
                 
                 let sumHeaders = ["Category (类别)", "Item (项目)", ...globalStore.intervals, "Total (总计)"];
-                ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll } })));
+                ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center", border: borderAll } } })));
 
                 let gradeStartRow = summaryTitleRow + 2;
                 merges.push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 2, c: 0} });
