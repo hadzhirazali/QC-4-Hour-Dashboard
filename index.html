@@ -235,14 +235,14 @@
     }
 
     // ============================================================================
-    // NATIVE VECTOR CHART RENDERERS (Used on-screen AND in 2840px HD Export!)
+    // NATIVE VECTOR CHART RENDERERS (Locked to Desktop 640x300 aspect ratio!)
     // ============================================================================
     function setupCanvas(canvas) {
         if (!canvas) return null;
         const dpr = Math.max(window.devicePixelRatio || 2, 2);
-        const rect = canvas.parentElement.getBoundingClientRect();
-        const w = rect.width || 640;
-        const h = rect.height || 300;
+        // Locked to fixed desktop logical dimensions (640x300) so mobile / small dragged windows never squish!
+        const w = 640;
+        const h = 300;
         canvas.width = w * dpr;
         canvas.height = h * dpr;
         canvas.style.width = '100%';
@@ -748,7 +748,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => { loadFromCloudAndRender(); });
-    window.addEventListener('resize', () => { if (document.getElementById('dateSelector').value) renderDashboard(); });
     document.getElementById('syncCloudBtn').addEventListener('click', loadFromCloudAndRender);
 
     function promptForMissingModels(selectedDate, syncToCloud = false) {
@@ -1041,6 +1040,7 @@
         </div>`;
     }
 
+    // Updated with 4th row under Comprehensive Grade: Total Output (总产出) = A + 注意 + F for each timeframe!
     function generateSummaryHTML(line, lineData) {
         const intervals = globalStore.intervals;
         let uniqueRemarks = new Set();
@@ -1050,9 +1050,10 @@
         let remarkList = Array.from(uniqueRemarks).sort();
 
         let shiftColsHTML = intervals.map(t => `<th style="background-color: ${getSubHeaderColor(line)};">${t}</th>`).join('');
-        let aRow = `<tr><td rowspan="3">Comprehensive Grade<br>(总评)</td><td>A</td>`;
+        let aRow = `<tr><td rowspan="4">Comprehensive Grade<br>(总评)</td><td>A</td>`;
         let nRow = `<tr><td>注意 (Attention)</td>`;
         let fRow = `<tr><td>F</td>`;
+        let totOutRow = `<tr style="background-color: #f8f8f6; font-weight: 600;"><td>Total Output (总产出)</td>`;
         let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
         
         lineData.shifts.forEach(s => {
@@ -1063,13 +1064,18 @@
             aRow += `<td>${shiftTotalA}</td>`; aTot += shiftTotalA; 
             nRow += `<td>${shiftTotalN}</td>`; nTot += shiftTotalN; 
             fRow += `<td>${shiftTotalF}</td>`; fTot += shiftTotalF; 
+            totOutRow += `<td><b>${shiftTotalOutput}</b></td>`;
             overallTot += shiftTotalOutput;
         });
         
         let aPct = overallTot ? ((aTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
         let nPct = overallTot ? ((nTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
         let fPct = overallTot ? ((fTot/overallTot)*100).toFixed(2)+'%' : '0.00%';
-        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`; nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`; fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
+        let totPct = overallTot > 0 ? '100.00%' : '0.00%';
+        aRow += `<td><b>${aTot}</b> (${aPct})</td></tr>`;
+        nRow += `<td><b>${nTot}</b> (${nPct})</td></tr>`;
+        fRow += `<td><b>${fTot}</b> (${fPct})</td></tr>`;
+        totOutRow += `<td><b>${overallTot}</b> (${totPct})</td></tr>`;
 
         let remarkRowsHTML = '';
         if (remarkList.length === 0) {
@@ -1110,7 +1116,7 @@
                         <th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Category (类别)</th><th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Item (项目)</th>${shiftColsHTML}<th style="width: 15%; background-color: ${getSubHeaderColor(line)};">Total (总计)</th>
                     </tr>
                 </thead>
-                <tbody>${aRow}${nRow}${fRow}${remarkRowsHTML}</tbody>
+                <tbody>${aRow}${nRow}${fRow}${totOutRow}${remarkRowsHTML}</tbody>
             </table>
         </div>`;
     }
@@ -1290,7 +1296,7 @@
     }
 
     // ============================================================================
-    // UNIFIED HD VECTOR EXPORT ENGINE (All 3 Parts Draw Directly in Vector HD!)
+    // UNIFIED HD VECTOR EXPORT ENGINE (Fixed 1420x2.5 Desktop Output on Mobile & PC!)
     // ============================================================================
     function wrapCanvasLines(ctx, text, maxWidth) {
         if (!text) return ['-'];
@@ -1562,7 +1568,8 @@
             });
             const remarkList = Array.from(uniqueRemarks).sort();
             const remarkCount = Math.max(1, remarkList.length);
-            const tableRowsCount = 3 + remarkCount;
+            // 4 rows under Comprehensive Grade (A, 注意, F, Total Output) + Station Remarks rows
+            const tableRowsCount = 4 + remarkCount;
             const blockH = 16 + 240 + 12 + 32 + 34 + tableRowsCount * 30 + 16;
             return { lineData, remarkList, remarkCount, blockH, totalA, totalN, totalF, aggRemarks };
         });
@@ -1672,32 +1679,34 @@
                 });
                 ty += 34;
 
-                drawCenteredCell(ctx, tx, ty, cWidths[0], 90, "Comprehensive\nGrade (总评)", '#ffffff', false, 'center', 10);
+                // Spans 4 rows (120px) for A, 注意, F, and Total Output (总产出)
+                drawCenteredCell(ctx, tx, ty, cWidths[0], 120, "Comprehensive\nGrade (总评)", '#ffffff', false, 'center', 10);
 
                 let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
                 const shiftTotals = bm.lineData.shifts.map(s => {
                     let sa = 0, sn = 0, sf = 0, st = 0;
                     s.rows.forEach(row => { sa += row.a; sn += row.n; sf += row.f; st += row.total; });
                     aTot += sa; nTot += sn; fTot += sf; overallTot += st;
-                    return { sa, sn, sf };
+                    return { sa, sn, sf, st };
                 });
 
                 const gradeRows = [
-                    { label: 'A', vals: shiftTotals.map(x => x.sa), tot: aTot },
-                    { label: '注意', vals: shiftTotals.map(x => x.sn), tot: nTot },
-                    { label: 'F', vals: shiftTotals.map(x => x.sf), tot: fTot }
+                    { label: 'A', vals: shiftTotals.map(x => x.sa), tot: aTot, bg: '#ffffff', isBold: false },
+                    { label: '注意', vals: shiftTotals.map(x => x.sn), tot: nTot, bg: '#ffffff', isBold: false },
+                    { label: 'F', vals: shiftTotals.map(x => x.sf), tot: fTot, bg: '#ffffff', isBold: false },
+                    { label: 'Total Output\n(总产出)', vals: shiftTotals.map(x => x.st), tot: overallTot, bg: '#f8f8f6', isBold: true }
                 ];
 
                 gradeRows.forEach(gr => {
                     let gcx = tx + cWidths[0];
-                    drawCenteredCell(ctx, gcx, ty, cWidths[1], 30, gr.label, '#ffffff', false, 'center', 10);
+                    drawCenteredCell(ctx, gcx, ty, cWidths[1], 30, gr.label, gr.bg, gr.isBold, 'center', 9.5);
                     gcx += cWidths[1];
                     gr.vals.forEach((v, vIdx) => {
-                        drawCenteredCell(ctx, gcx, ty, cWidths[2 + vIdx], 30, String(v), '#ffffff', false, 'center', 10);
+                        drawCenteredCell(ctx, gcx, ty, cWidths[2 + vIdx], 30, String(v), gr.bg, gr.isBold, 'center', 10);
                         gcx += cWidths[2 + vIdx];
                     });
                     const pct = overallTot ? ((gr.tot / overallTot) * 100).toFixed(2) + '%' : '0.00%';
-                    drawCenteredCell(ctx, gcx, ty, cWidths[8], 30, `${gr.tot} (${pct})`, '#ffffff', true, 'center', 10);
+                    drawCenteredCell(ctx, gcx, ty, cWidths[8], 30, `${gr.tot} (${pct})`, gr.bg, true, 'center', 10);
                     ty += 30;
                 });
 
@@ -2039,11 +2048,13 @@
                 ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center", border: borderAll } } })));
 
                 let gradeStartRow = summaryTitleRow + 2;
-                merges.push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 2, c: 0} });
+                // Merge Comprehensive Grade across 4 rows (A, 注意, F, Total Output)
+                merges.push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 3, c: 0} });
 
                 let aRow = [{v:"Comprehensive Grade (总评)"}, {v:"A"}];
                 let nRow = [{v:""}, {v:"注意 (Attention)"}];
                 let fRow = [{v:""}, {v:"F"}];
+                let totRow = [{v:""}, {v:"Total Output (总产出)"}];
                 let totalA = 0, totalN = 0, totalF = 0, totalOutput = 0;
                 
                 lineData.shifts.forEach(s => { 
@@ -2052,22 +2063,30 @@
                     aRow.push({v: shiftA}); totalA += shiftA; 
                     nRow.push({v: shiftN}); totalN += shiftN; 
                     fRow.push({v: shiftF}); totalF += shiftF; 
-                    totalOutput += shiftOutput; 
+                    totRow.push({v: shiftOutput}); totalOutput += shiftOutput; 
                 });
                 
                 let aPct = totalOutput > 0 ? ((totalA / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
                 let nPct = totalOutput > 0 ? ((totalN / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
                 let fPct = totalOutput > 0 ? ((totalF / totalOutput) * 100).toFixed(2)+'%' : '0.00%';
-                aRow.push({v: `${totalA} (${aPct})`}); nRow.push({v: `${totalN} (${nPct})`}); fRow.push({v: `${totalF} (${fPct})`});
+                let totPct = totalOutput > 0 ? '100.00%' : '0.00%';
+                aRow.push({v: `${totalA} (${aPct})`});
+                nRow.push({v: `${totalN} (${nPct})`});
+                fRow.push({v: `${totalF} (${fPct})`});
+                totRow.push({v: `${totalOutput} (${totPct})`});
                 
                 let s_fmt = { alignment: { horizontal: "center", vertical: "center" }, border: borderAll };
-                ws_data.push(aRow.map(cell => ({v: cell.v, s: s_fmt}))); ws_data.push(nRow.map(cell => ({v: cell.v, s: s_fmt}))); ws_data.push(fRow.map(cell => ({v: cell.v, s: s_fmt})));
+                let s_bold = { font: { bold: true }, fill: { fgColor: { rgb: "F2F2F2" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderAll };
+                ws_data.push(aRow.map(cell => ({v: cell.v, s: s_fmt})));
+                ws_data.push(nRow.map(cell => ({v: cell.v, s: s_fmt})));
+                ws_data.push(fRow.map(cell => ({v: cell.v, s: s_fmt})));
+                ws_data.push(totRow.map(cell => ({v: cell.v, s: s_bold})));
 
                 let uniqueRemarks = new Set();
                 lineData.shifts.forEach(s => { s.rows.forEach(r => { if(r.stationRemarks) Object.keys(r.stationRemarks).forEach(rm => uniqueRemarks.add(rm)); }); });
                 let remarks = Array.from(uniqueRemarks).sort();
                 
-                let remarkStartRow = gradeStartRow + 3;
+                let remarkStartRow = gradeStartRow + 4;
                 if(remarks.length === 0) {
                     let emptyRem = [{v:"Station Remarks (备注)"}, {v:"-"}];
                     lineData.shifts.forEach(() => emptyRem.push({v: 0}));
@@ -2095,7 +2114,7 @@
                 ws['!merges'] = merges;
                 
                 let safeSheetName = line.replace(/[\[\]\*?:\/]/g, "").substring(0, 31);
-                ws['!cols'] = [ { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
+                ws['!cols'] = [ { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 18 }, { wch: 100 } ];
                 XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
             });
 
