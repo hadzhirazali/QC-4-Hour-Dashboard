@@ -148,24 +148,24 @@
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
     // ============================================================================
-    // VIBRANT COLOR HASH GENERATOR (Guarantees bright, distinct colors)
+    // BRIGHT, LIGHT & DISTINCT COLOR PALETTE (Zero Dark Shades, Zero Collisions)
     // ============================================================================
-    const vibrantColors = [
-        '#e87ba4', // Pink
-        '#eb6834', // Orange
-        '#eda100', // Yellow
-        '#1baf7a', // Green
-        '#2a78d6', // Blue
-        '#4a3aa7', // Purple
-        '#00a99d', // Teal
-        '#f15a24', // Bright Red-Orange
-        '#8cc63f', // Lime Green
-        '#29abe2', // Light Blue
-        '#ed1e79', // Magenta
-        '#662d91', // Dark Purple
-        '#009245', // Dark Green
-        '#c1272d', // Red
-        '#fbb03b'  // Bright Gold
+    const brightPalette = [
+        '#38bdf8', // Sky Blue
+        '#fb923c', // Bright Orange
+        '#f472b6', // Rose Pink
+        '#facc15', // Sunny Yellow
+        '#34d399', // Mint Emerald
+        '#a78bfa', // Soft Lavender (Light Purple)
+        '#f87171', // Coral Red
+        '#2dd4bf', // Bright Teal
+        '#a3e635', // Lime Green
+        '#60a5fa', // Cornflower Blue
+        '#fbbf24', // Amber Gold
+        '#e879f9', // Orchid Pink
+        '#22d3ee', // Cyan
+        '#fdba74', // Peach
+        '#86efac'  // Light Green
     ];
 
     function getDefectColor(str) {
@@ -173,11 +173,32 @@
         for (let i = 0; i < str.length; i++) {
             hash = str.charCodeAt(i) + ((hash << 5) - hash);
         }
-        return vibrantColors[Math.abs(hash) % vibrantColors.length];
+        return brightPalette[Math.abs(hash) % brightPalette.length];
+    }
+
+    // Guarantees that within a chart/line, no two items ever share the same color
+    function assignUniqueColorMap(namesArray) {
+        const usedIndices = new Set();
+        const colorMap = {};
+        namesArray.forEach(name => {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            let idx = Math.abs(hash) % brightPalette.length;
+            let attempts = 0;
+            while (usedIndices.has(idx) && attempts < brightPalette.length) {
+                idx = (idx + 1) % brightPalette.length;
+                attempts++;
+            }
+            usedIndices.add(idx);
+            colorMap[name] = brightPalette[idx];
+        });
+        return colorMap;
     }
 
     // ============================================================================
-    // NATIVE OFFLINE CANVAS CHART ENGINE (1:1 Circular Pies & Thicker Bars)
+    // NATIVE OFFLINE CANVAS CHART ENGINE (Matched Trend & Pareto Colors)
     // ============================================================================
     function setupCanvas(canvas) {
         if (!canvas) return null;
@@ -220,7 +241,7 @@
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         if (datasets.length === 0) {
-            ctx.fillStyle = '#1baf7a';
+            ctx.fillStyle = '#34d399';
             ctx.fillRect(legX, legY - 5, 12, 10);
             ctx.fillStyle = '#52514e';
             ctx.fillText('0 Defects (100% Pass)', legX + 16, legY);
@@ -239,7 +260,7 @@
         const padL = 48, padR = 20, padT = legY + 22, padB = 38;
         const plotW = w - padL - padR;
         const plotH = h - padT - padB;
-        const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.15);
+        const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.18);
         const steps = 5;
 
         ctx.strokeStyle = '#e7e6e1';
@@ -285,7 +306,7 @@
         });
     }
 
-    function drawNativePareto(canvas, labels, counts, cumPct) {
+    function drawNativePareto(canvas, labels, counts, cumPct, barColors) {
         const env = setupCanvas(canvas);
         if (!env) return;
         const { ctx, w, h } = env;
@@ -295,11 +316,11 @@
             return;
         }
 
-        const padL = 45, padR = 48, padT = 32, padB = 55;
+        const padL = 45, padR = 48, padT = 34, padB = 55;
         const plotW = w - padL - padR;
         const plotH = h - padT - padB;
         const maxCount = Math.max(...counts, 1);
-        const yMax = Math.ceil(maxCount * 1.15);
+        const yMax = Math.ceil(maxCount * 1.25); // Extra headroom so bar numbers never collide with the cumulative line
         const steps = 5;
 
         ctx.font = '11px system-ui, sans-serif';
@@ -330,7 +351,8 @@
             const barH = (val / yMax) * plotH;
             const by = padT + plotH - barH;
 
-            ctx.fillStyle = '#eda100';
+            // Uses the exact same defect color as the 4-Hour Defect Trend chart
+            ctx.fillStyle = (barColors && barColors[i]) ? barColors[i] : '#38bdf8';
             ctx.fillRect(cx - barW / 2, by, barW, barH);
 
             ctx.fillStyle = '#141413';
@@ -363,7 +385,6 @@
         });
     }
 
-    // Direct 1:1 Circular Pie Renderer (Used on-screen AND in WeChat Export so pies NEVER squish!)
     function drawPieInRect(ctx, rx, ry, rw, rh, labels, values, sliceColors, isCompact = false) {
         const total = values.reduce((a, b) => a + b, 0);
         if (total === 0) {
@@ -413,7 +434,6 @@
             startAngle = endAngle;
         });
 
-        // Legend on the right with zero distortion
         const legX = rx + rw * (isCompact ? 0.59 : 0.62);
         const rowStep = isCompact ? 18 : 22;
         let legY = Math.max(ry + 16, cy - (labels.length * rowStep) / 2 + rowStep / 2);
@@ -1114,15 +1134,19 @@
                 });
             });
 
-            const datasets = Object.keys(defectMap).map((name) => ({
+            // Assign a unique bright color to each defect on this line (used by BOTH Trend & Pareto!)
+            const defectNames = Object.keys(defectMap);
+            const lineDefectColors = assignUniqueColorMap(defectNames);
+
+            const datasets = defectNames.map((name) => ({
                 label: name,
                 data: defectMap[name],
-                backgroundColor: getDefectColor(name)
+                backgroundColor: lineDefectColors[name]
             }));
 
             drawNativeStackedBar(document.getElementById(`trendChart_${line}`), globalStore.intervals, datasets);
 
-            let totals = Object.keys(defectMap).map(name => ({
+            let totals = defectNames.map(name => ({
                 name: name,
                 total: defectMap[name].reduce((a, b) => a + b, 0)
             })).sort((a, b) => b.total - a.total);
@@ -1130,6 +1154,7 @@
             let cumulative = 0;
             const totalDefects = totals.reduce((sum, item) => sum + item.total, 0);
             const paretoData = totals.map(item => item.total);
+            const paretoColors = totals.map(item => lineDefectColors[item.name]);
             const paretoLine = totals.map(item => {
                 cumulative += item.total;
                 return (cumulative / (totalDefects || 1)) * 100;
@@ -1139,7 +1164,8 @@
                 document.getElementById(`paretoChart_${line}`),
                 totals.map(item => item.name),
                 paretoData,
-                paretoLine
+                paretoLine,
+                paretoColors
             );
 
             let totalA = 0, totalN = 0, totalF = 0;
@@ -1165,7 +1191,8 @@
 
             const remarkKeys = Object.keys(aggRemarks);
             const remarkVals = Object.values(aggRemarks);
-            const remarkColors = remarkKeys.map((rm) => getDefectColor(rm));
+            const remarkColorMap = assignUniqueColorMap(remarkKeys);
+            const remarkColors = remarkKeys.map((rm) => remarkColorMap[rm]);
 
             drawNativePie(
                 document.getElementById(`remarkPie_${line}`),
@@ -1443,7 +1470,7 @@
                 const pieCardH = 240;
                 const pieY = by + 12;
 
-                // Left Pie Card (Drawn directly with 1:1 round radius - never squished!)
+                // Left Pie Card
                 ctx.fillStyle = '#fcfcfb';
                 ctx.strokeStyle = '#e0dfda';
                 ctx.fillRect(bx + 12, pieY, pieCardW, pieCardH);
@@ -1462,7 +1489,7 @@
                     cols === 2
                 );
 
-                // Right Pie Card (Drawn directly with 1:1 round radius - never squished!)
+                // Right Pie Card
                 const rx = bx + 24 + pieCardW;
                 ctx.fillStyle = '#fcfcfb';
                 ctx.strokeStyle = '#e0dfda';
@@ -1476,7 +1503,8 @@
 
                 const rKeys = Object.keys(bm.aggRemarks);
                 const rVals = Object.values(bm.aggRemarks);
-                const rCols = rKeys.map(rm => getDefectColor(rm));
+                const rColorMap = assignUniqueColorMap(rKeys);
+                const rCols = rKeys.map(rm => rColorMap[rm]);
                 drawPieInRect(
                     ctx,
                     rx, pieY + 30, pieCardW, pieCardH - 32,
@@ -1560,7 +1588,7 @@
                             drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], 30, String(cVal), '#ffffff', false, 'center', 10);
                             rcx += cWidths[2 + sIdx];
                         });
-                        const rPct = overallTot ? ((rmTot / overallTot) * 100).toFixed(2) + '%' : '0.00%';
+                        const rPct = overallTot ? ((rmTot / overallTot) * 100).toFixed(2)+'%' : '0.00%';
                         drawCenteredCell(ctx, rcx, ty, cWidths[8], 30, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 10);
                         ty += 30;
                     });
@@ -1848,7 +1876,7 @@
         } catch (error) {
             console.error(error);
             btn.textContent = '❌ Export Failed';
-            setTimeout(() => btn.textContent = originalText, 2500);
+            setTimeout(() => btn.textContent = originalText, 2000);
         }
     }
 </script>
