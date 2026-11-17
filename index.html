@@ -21,7 +21,7 @@
         .sub { color: var(--ink2); margin-top: 4px; font-size: 13px; }
         
         .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;}
-        .upload-btn { background: var(--surface); border: 1px solid var(--ink); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s;}
+        .upload-btn { background: var(--surface); border: 1px solid var(--ink); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; white-space: nowrap;}
         .upload-btn:hover { background: var(--ctrl); }
         .btn-danger { background: #ffebe6; border-color: #ff5c33; color: #cc3300; }
         .btn-danger:hover { background: #ffcccb; }
@@ -75,16 +75,18 @@
             </div>
         </div>
         <div style="width: 100%; border-top: 1px solid var(--line); padding-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <label for="dateSelector" style="font-size: 14px; font-weight: 600;">Select Report Date (选择报表日期): </label>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <label for="dateSelector" style="font-size: 14px; font-weight: 600;">Select Report Date: </label>
                 <select id="dateSelector" class="date-picker">
                     <option value="">No Dates Available</option>
                 </select>
-                <span style="color: var(--ink3); font-size: 12px; font-weight: normal; margin-left: 10px;">*(Night Shift 00:00 - 08:00 AM is grouped into the previous day's report)*</span>
+                <span style="color: var(--ink3); font-size: 12px; font-weight: normal;">*(Night Shift 00:00 - 08:00 AM is grouped into the previous day's report)*</span>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <!-- Pinned to the right side using margin-left: auto and justify-content: flex-end -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end;">
                 <button id="clearDateBtn" class="upload-btn btn-warn">🗑️ Clear Selected Date</button>
                 <button id="clearAllBtn" class="upload-btn btn-danger">🗑️ Clear All Cloud Data</button>
+                <button id="copyAll3Btn_header" class="upload-btn" style="background: #4E79A7; border-color: #4E79A7; color: #fff;">📦 Copy All 3 Separate</button>
                 <button id="copyMessageBtn" class="upload-btn" style="background: #fff; border-color: #141413; color: #141413;">📋 Copy WeChat Message</button>
             </div>
         </div>
@@ -97,6 +99,7 @@
     <div id="tablesSection" style="display: none;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
             <button id="exportExcelBtn_top" class="upload-btn" style="background: #17673f; border-color: #17673f; color: #fff;">📊 Download Excel (下载Excel)</button>
+            <button id="copyAll3Btn_top" class="upload-btn" style="background: #4E79A7; border-color: #4E79A7; color: #fff;">📦 Copy All 3 Separate</button>
             <button id="shareTableBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Tables Image (Mobile)</button>
             <button id="copyTableBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Tables (PC)</button>
         </div>
@@ -114,9 +117,9 @@
 
     <div id="summarySection" style="display: none; margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); border-color: var(--ink); color: #fff;">⬆️ Back to Top (返回顶部)</button>
             <button id="shareSummaryBtn" class="upload-btn" style="background: #2a78d6; border-color: #2a78d6; color: #fff;">📤 Share Summary Image (Mobile)</button>
             <button id="copySummaryBtn" class="upload-btn" style="background: #fff; border-color: #2a78d6; color: #2a78d6;">📋 Copy Summary (PC)</button>
-            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); border-color: var(--ink); color: #fff;">⬆️ Back to Top (返回顶部)</button>
         </div>
         <div id="summaryContainer" style="padding: 10px; background: var(--bg); margin: -10px;"></div>
     </div>
@@ -125,6 +128,55 @@
         <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="upload-btn" style="background: var(--ink); color: #fff; padding: 12px 30px; font-size: 15px; border-radius: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
             ⬆️ Back to Top (返回顶部)
         </button>
+    </div>
+</div>
+
+<!-- 3-Part Separate WeChat Image Send Tray Modal -->
+<div id="tripleCopyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fcfcfb; border:1px solid #141413; border-radius:12px; width:100%; max-width:1180px; max-height:90vh; overflow-y:auto; padding:20px; box-shadow:0 12px 36px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0dfda; padding-bottom:12px; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="margin:0; font-size:18px;">📦 3 Separate WeChat Images Ready</h3>
+                <div style="font-size:12px; color:#52514e; margin-top:4px;">Part 1 (Tables) is already copied to your clipboard! Paste it in WeChat, then click Part 2 & Part 3 below — or download all 3 separate PNGs at once.</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button id="downloadAll3ModalBtn" class="upload-btn" style="background:#17673f; border-color:#17673f; color:#fff;">📥 Download All 3 Separate PNGs</button>
+                <button id="shareAll3MobileBtn" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📤 Share All 3 (Mobile)</button>
+                <button onclick="document.getElementById('tripleCopyModal').style.display='none'" class="upload-btn" style="background:#ffebe6; border-color:#ff5c33; color:#cc3300;">✖ Close</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
+            <!-- Part 1 -->
+            <div style="background:#f1f1ee; border:1px solid #e0dfda; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; font-size:14px;">1️⃣ Part 1: Inspection Tables</span>
+                    <button id="modalCopyBtn_1" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 1</button>
+                </div>
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                    <img id="modalPreview_1" alt="Part 1 Preview" style="width:100%; height:auto; display:block;">
+                </div>
+            </div>
+            <!-- Part 2 -->
+            <div style="background:#f1f1ee; border:1px solid #e0dfda; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; font-size:14px;">2️⃣ Part 2: Trend & Pareto Charts</span>
+                    <button id="modalCopyBtn_2" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 2</button>
+                </div>
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                    <img id="modalPreview_2" alt="Part 2 Preview" style="width:100%; height:auto; display:block;">
+                </div>
+            </div>
+            <!-- Part 3 -->
+            <div style="background:#f1f1ee; border:1px solid #e0dfda; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; font-size:14px;">3️⃣ Part 3: Summary & Pie Charts</span>
+                    <button id="modalCopyBtn_3" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 3</button>
+                </div>
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                    <img id="modalPreview_3" alt="Part 3 Preview" style="width:100%; height:auto; display:block;">
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -145,64 +197,49 @@
     globalStore.userDecisions = window.globalStoreCache.userDecisions;
     let processedBarcodes = new Set();
     let currentRenderedTables = [];
+    let cachedTripleBlobs = { tables: null, charts: null, summary: null };
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
 
     // ============================================================================
-    // BRIGHT, LIGHT & DISTINCT COLOR PALETTE (Zero Dark Shades, Zero Collisions)
+    // TABLEAU 20 PALETTE PRIORITIZING BLUE & ORANGE FIRST (Sequential Assignment)
     // ============================================================================
-    const brightPalette = [
-        '#38bdf8', // Sky Blue
-        '#fb923c', // Bright Orange
-        '#f472b6', // Rose Pink
-        '#facc15', // Sunny Yellow
-        '#34d399', // Mint Emerald
-        '#a78bfa', // Soft Lavender (Light Purple)
-        '#f87171', // Coral Red
-        '#2dd4bf', // Bright Teal
-        '#a3e635', // Lime Green
-        '#60a5fa', // Cornflower Blue
-        '#fbbf24', // Amber Gold
-        '#e879f9', // Orchid Pink
-        '#22d3ee', // Cyan
-        '#fdba74', // Peach
-        '#86efac'  // Light Green
+    const tableau20Palette = [
+        '#4E79A7', // 1. Steel Blue (Accessories)
+        '#F28E2B', // 2. Soft Orange (Art)
+        '#A0CBE8', // 3. Light Sky Blue (Appliances)
+        '#FFBE7D', // 4. Soft Peach Orange (Binders)
+        '#59A14F', // 5. Leaf Green (Bookcases)
+        '#8CD17D', // 6. Pastel Green (Chairs)
+        '#F1CE63', // 7. Soft Yellow (Envelopes)
+        '#B6992D', // 8. Golden Olive (Copiers)
+        '#499894', // 9. Muted Teal (Fasteners)
+        '#86BCB6', // 10. Soft Aqua (Furnishings)
+        '#E15759', // 11. Soft Coral Red (Labels)
+        '#FF9D9A', // 12. Salmon Pink (Machines)
+        '#D37295', // 13. Dusty Rose (Storage)
+        '#FABFD2', // 14. Light Pink
+        '#B07AA1', // 15. Muted Purple
+        '#D4A6C8', // 16. Soft Lavender
+        '#9D7660', // 17. Warm Brown
+        '#D7B5A6', // 18. Soft Tan
+        '#79706E', // 19. Warm Grey (Paper)
+        '#BAB0AC'  // 20. Light Grey (Phones)
     ];
 
-    function getDefectColor(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return brightPalette[Math.abs(hash) % brightPalette.length];
-    }
-
-    // Guarantees that within a chart/line, no two items ever share the same color
-    function assignUniqueColorMap(namesArray) {
-        const usedIndices = new Set();
+    function assignSequentialColorMap(namesArray) {
         const colorMap = {};
-        namesArray.forEach(name => {
-            let hash = 0;
-            for (let i = 0; i < name.length; i++) {
-                hash = name.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            let idx = Math.abs(hash) % brightPalette.length;
-            let attempts = 0;
-            while (usedIndices.has(idx) && attempts < brightPalette.length) {
-                idx = (idx + 1) % brightPalette.length;
-                attempts++;
-            }
-            usedIndices.add(idx);
-            colorMap[name] = brightPalette[idx];
+        namesArray.forEach((name, idx) => {
+            colorMap[name] = tableau20Palette[idx % tableau20Palette.length];
         });
         return colorMap;
     }
 
     // ============================================================================
-    // NATIVE OFFLINE CANVAS CHART ENGINE (Matched Trend & Pareto Colors)
+    // NATIVE VECTOR CHART RENDERERS (Used on-screen AND in 2840px HD Export!)
     // ============================================================================
     function setupCanvas(canvas) {
         if (!canvas) return null;
-        const dpr = window.devicePixelRatio || 2;
+        const dpr = Math.max(window.devicePixelRatio || 2, 2);
         const rect = canvas.parentElement.getBoundingClientRect();
         const w = rect.width || 640;
         const h = rect.height || 300;
@@ -228,27 +265,23 @@
         ctx.fillText(msg, x + w / 2, y + h / 2);
     }
 
-    function drawNativeStackedBar(canvas, labels, datasets) {
-        const env = setupCanvas(canvas);
-        if (!env) return;
-        const { ctx, w, h } = env;
-
+    function drawStackedBarInRect(ctx, rx, ry, w, h, labels, datasets) {
         const totalsPerSlot = labels.map((_, i) => datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0));
         const maxVal = Math.max(...totalsPerSlot, 0);
 
-        let legX = 50, legY = 14;
-        ctx.font = '12px system-ui, sans-serif';
+        let legX = rx + 48, legY = ry + 14;
+        ctx.font = '12px system-ui, "Noto Sans SC", sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         if (datasets.length === 0) {
-            ctx.fillStyle = '#34d399';
+            ctx.fillStyle = '#59A14F';
             ctx.fillRect(legX, legY - 5, 12, 10);
             ctx.fillStyle = '#52514e';
             ctx.fillText('0 Defects (100% Pass)', legX + 16, legY);
         } else {
             datasets.forEach(ds => {
                 const tw = ctx.measureText(ds.label).width + 26;
-                if (legX + tw > w - 20) { legX = 50; legY += 18; }
+                if (legX + tw > rx + w - 16) { legX = rx + 48; legY += 18; }
                 ctx.fillStyle = ds.backgroundColor;
                 ctx.fillRect(legX, legY - 5, 12, 10);
                 ctx.fillStyle = '#141413';
@@ -257,37 +290,40 @@
             });
         }
 
-        const padL = 48, padR = 20, padT = legY + 22, padB = 38;
+        const padL = 48, padR = 20, padT = (legY - ry) + 22, padB = 36;
         const plotW = w - padL - padR;
         const plotH = h - padT - padB;
         const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.18);
         const steps = 5;
 
         ctx.strokeStyle = '#e7e6e1';
+        ctx.lineWidth = 1;
         ctx.fillStyle = '#52514e';
         ctx.font = '11px system-ui, sans-serif';
         ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
         for (let i = 0; i <= steps; i++) {
             const val = (yMax / steps) * i;
-            const y = padT + plotH - (i / steps) * plotH;
+            const y = ry + padT + plotH - (i / steps) * plotH;
             ctx.beginPath();
-            ctx.moveTo(padL, y);
-            ctx.lineTo(padL + plotW, y);
+            ctx.moveTo(rx + padL, y);
+            ctx.lineTo(rx + padL + plotW, y);
             ctx.stroke();
-            ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), padL - 6, y);
+            ctx.fillText(Number.isInteger(val) ? val : val.toFixed(1), rx + padL - 6, y);
         }
 
         const slotW = plotW / labels.length;
         const barW = Math.min(65, slotW * 0.72);
 
         labels.forEach((lbl, i) => {
-            const cx = padL + i * slotW + slotW / 2;
+            const cx = rx + padL + i * slotW + slotW / 2;
             ctx.fillStyle = '#141413';
             ctx.font = '11px system-ui, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(lbl, cx, padT + plotH + 18);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(lbl, cx, ry + padT + plotH + 18);
 
-            let currentBottom = padT + plotH;
+            let currentBottom = ry + padT + plotH;
             datasets.forEach(ds => {
                 const val = ds.data[i] || 0;
                 if (val > 0) {
@@ -300,45 +336,49 @@
 
             if (totalsPerSlot[i] > 0) {
                 ctx.fillStyle = '#141413';
-                ctx.font = 'bold 11px system-ui, sans-serif';
-                ctx.fillText(totalsPerSlot[i], cx, currentBottom - 8);
+                ctx.font = 'bold 11.5px system-ui, sans-serif';
+                ctx.fillText(totalsPerSlot[i], cx, currentBottom - 9);
             }
         });
     }
 
-    function drawNativePareto(canvas, labels, counts, cumPct, barColors) {
+    function drawNativeStackedBar(canvas, labels, datasets) {
         const env = setupCanvas(canvas);
         if (!env) return;
-        const { ctx, w, h } = env;
+        drawStackedBarInRect(env.ctx, 0, 0, env.w, env.h, labels, datasets);
+    }
 
+    function drawParetoInRect(ctx, rx, ry, w, h, labels, counts, cumPct, barColors) {
         if (!labels || labels.length === 0) {
-            drawEmptyState(ctx, 0, 0, w, h, '✅ No Attention Defects Recorded (无判注意不良)');
+            drawEmptyState(ctx, rx, ry, w, h, '✅ No Attention Defects Recorded (无判注意不良)');
             return;
         }
 
-        const padL = 45, padR = 48, padT = 34, padB = 55;
+        const padL = 45, padR = 48, padT = 32, padB = 50;
         const plotW = w - padL - padR;
         const plotH = h - padT - padB;
         const maxCount = Math.max(...counts, 1);
-        const yMax = Math.ceil(maxCount * 1.25); // Extra headroom so bar numbers never collide with the cumulative line
+        const yMax = Math.ceil(maxCount * 1.25);
         const steps = 5;
 
         ctx.font = '11px system-ui, sans-serif';
+        ctx.textBaseline = 'middle';
         for (let i = 0; i <= steps; i++) {
-            const y = padT + plotH - (i / steps) * plotH;
+            const y = ry + padT + plotH - (i / steps) * plotH;
             ctx.strokeStyle = '#e7e6e1';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(padL, y);
-            ctx.lineTo(padL + plotW, y);
+            ctx.moveTo(rx + padL, y);
+            ctx.lineTo(rx + padL + plotW, y);
             ctx.stroke();
 
             ctx.fillStyle = '#52514e';
             ctx.textAlign = 'right';
             const leftVal = (yMax / steps) * i;
-            ctx.fillText(Number.isInteger(leftVal) ? leftVal : leftVal.toFixed(1), padL - 6, y);
+            ctx.fillText(Number.isInteger(leftVal) ? leftVal : leftVal.toFixed(1), rx + padL - 6, y);
 
             ctx.textAlign = 'left';
-            ctx.fillText(((100 / steps) * i).toFixed(0) + '%', padL + plotW + 6, y);
+            ctx.fillText(((100 / steps) * i).toFixed(0) + '%', rx + padL + plotW + 6, y);
         }
 
         const slotW = plotW / labels.length;
@@ -346,26 +386,22 @@
         const linePts = [];
 
         labels.forEach((lbl, i) => {
-            const cx = padL + i * slotW + slotW / 2;
+            const cx = rx + padL + i * slotW + slotW / 2;
             const val = counts[i];
             const barH = (val / yMax) * plotH;
-            const by = padT + plotH - barH;
+            const by = ry + padT + plotH - barH;
 
-            // Uses the exact same defect color as the 4-Hour Defect Trend chart
-            ctx.fillStyle = (barColors && barColors[i]) ? barColors[i] : '#38bdf8';
+            ctx.fillStyle = (barColors && barColors[i]) ? barColors[i] : '#4E79A7';
             ctx.fillRect(cx - barW / 2, by, barW, barH);
 
-            ctx.fillStyle = '#141413';
-            ctx.font = 'bold 11px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(val, cx, by - 7);
-
             const shortLbl = lbl.length > 14 ? lbl.substring(0, 12) + '..' : lbl;
+            ctx.fillStyle = '#141413';
             ctx.font = '11px system-ui, sans-serif';
-            ctx.fillText(shortLbl, cx, padT + plotH + 18);
+            ctx.textAlign = 'center';
+            ctx.fillText(shortLbl, cx, ry + padT + plotH + 18);
 
-            const py = padT + plotH - (cumPct[i] / 100) * plotH;
-            linePts.push({ x: cx, y: py, pct: cumPct[i] });
+            const py = ry + padT + plotH - (cumPct[i] / 100) * plotH;
+            linePts.push({ x: cx, y: py, val: val, barTop: by });
         });
 
         ctx.strokeStyle = '#141413';
@@ -383,8 +419,28 @@
             ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
             ctx.fill();
         });
+
+        linePts.forEach(pt => {
+            ctx.font = 'bold 11.5px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const labelY = pt.barTop - 9;
+            ctx.strokeStyle = '#fcfcfb';
+            ctx.lineWidth = 3;
+            ctx.strokeText(pt.val, pt.x, labelY);
+            ctx.fillStyle = '#141413';
+            ctx.fillText(pt.val, pt.x, labelY);
+        });
     }
 
+    function drawNativePareto(canvas, labels, counts, cumPct, barColors) {
+        const env = setupCanvas(canvas);
+        if (!env) return;
+        drawParetoInRect(env.ctx, 0, 0, env.w, env.h, labels, counts, cumPct, barColors);
+    }
+
+    // 2-Pass 1:1 Circular Pie Renderer:
+    // Pass 1 draws all slices. Pass 2 draws all percentage labels ON TOP with anti-collision so no label is ever hidden!
     function drawPieInRect(ctx, rx, ry, rw, rh, labels, values, sliceColors, isCompact = false) {
         const total = values.reduce((a, b) => a + b, 0);
         if (total === 0) {
@@ -398,7 +454,10 @@
         const maxRadY = (rh / 2) - 14;
         const radius = Math.max(25, Math.min(maxRadX, maxRadY, isCompact ? 80 : 125));
 
+        // PASS 1: Draw all pie slices & white borders first
         let startAngle = -Math.PI / 2;
+        const labelQueue = [];
+
         values.forEach((val, i) => {
             if (val <= 0) return;
             const sliceAngle = (val / total) * Math.PI * 2;
@@ -417,23 +476,51 @@
             const pct = (val * 100 / total);
             if (pct > 0) {
                 const midAngle = startAngle + sliceAngle / 2;
-                const textRadius = pct < 5 ? radius * 0.84 : radius * 0.65;
-                const tx = cx + Math.cos(midAngle) * textRadius;
-                const ty = cy + Math.sin(midAngle) * textRadius;
-
-                ctx.fillStyle = '#ffffff';
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2.5;
-                ctx.font = `bold ${isCompact ? 10 : 12}px system-ui, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                const txt = pct.toFixed(1) + '%';
-                ctx.strokeText(txt, tx, ty);
-                ctx.fillText(txt, tx, ty);
+                labelQueue.push({
+                    pct,
+                    midAngle,
+                    txt: pct.toFixed(1) + '%'
+                });
             }
             startAngle = endAngle;
         });
 
+        // PASS 2: Draw all percentage labels on the TOP layer with staggered radii for adjacent small slices
+        const placedBoxes = [];
+        const fontSize = isCompact ? 10.5 : 12;
+        ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        labelQueue.forEach((item) => {
+            let rFactor = item.pct < 4 ? 0.86 : (item.pct < 10 ? 0.74 : 0.62);
+            let tx = cx + Math.cos(item.midAngle) * (radius * rFactor);
+            let ty = cy + Math.sin(item.midAngle) * (radius * rFactor);
+
+            const tw = ctx.measureText(item.txt).width + 4;
+            const th = fontSize + 2;
+
+            for (let attempt = 0; attempt < 4; attempt++) {
+                const hasOverlap = placedBoxes.some(b =>
+                    Math.abs(tx - b.x) < (tw + b.w) / 2 && Math.abs(ty - b.y) < (th + b.h) / 2
+                );
+                if (!hasOverlap) break;
+                rFactor = (attempt % 2 === 0) ? Math.min(0.92, rFactor + 0.16) : Math.max(0.45, rFactor - 0.18);
+                tx = cx + Math.cos(item.midAngle) * (radius * rFactor);
+                ty = cy + Math.sin(item.midAngle) * (radius * rFactor);
+            }
+
+            placedBoxes.push({ x: tx, y: ty, w: tw, h: th });
+
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(item.txt, tx, ty);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(item.txt, tx, ty);
+        });
+
+        // Legend on the right
         const legX = rx + rw * (isCompact ? 0.59 : 0.62);
         const rowStep = isCompact ? 18 : 22;
         let legY = Math.max(ry + 16, cy - (labels.length * rowStep) / 2 + rowStep / 2);
@@ -1134,22 +1221,21 @@
                 });
             });
 
-            // Assign a unique bright color to each defect on this line (used by BOTH Trend & Pareto!)
-            const defectNames = Object.keys(defectMap);
-            const lineDefectColors = assignUniqueColorMap(defectNames);
+            let totals = Object.keys(defectMap).map(name => ({
+                name: name,
+                total: defectMap[name].reduce((a, b) => a + b, 0)
+            })).sort((a, b) => b.total - a.total);
 
-            const datasets = defectNames.map((name) => ({
+            const sortedDefectNames = totals.map(item => item.name);
+            const lineDefectColors = assignSequentialColorMap(sortedDefectNames);
+
+            const datasets = sortedDefectNames.map((name) => ({
                 label: name,
                 data: defectMap[name],
                 backgroundColor: lineDefectColors[name]
             }));
 
             drawNativeStackedBar(document.getElementById(`trendChart_${line}`), globalStore.intervals, datasets);
-
-            let totals = defectNames.map(name => ({
-                name: name,
-                total: defectMap[name].reduce((a, b) => a + b, 0)
-            })).sort((a, b) => b.total - a.total);
 
             let cumulative = 0;
             const totalDefects = totals.reduce((sum, item) => sum + item.total, 0);
@@ -1162,7 +1248,7 @@
 
             drawNativePareto(
                 document.getElementById(`paretoChart_${line}`),
-                totals.map(item => item.name),
+                sortedDefectNames,
                 paretoData,
                 paretoLine,
                 paretoColors
@@ -1189,9 +1275,9 @@
                 });
             });
 
-            const remarkKeys = Object.keys(aggRemarks);
-            const remarkVals = Object.values(aggRemarks);
-            const remarkColorMap = assignUniqueColorMap(remarkKeys);
+            const remarkKeys = Object.keys(aggRemarks).sort((a, b) => aggRemarks[b] - aggRemarks[a]);
+            const remarkVals = remarkKeys.map(k => aggRemarks[k]);
+            const remarkColorMap = assignSequentialColorMap(remarkKeys);
             const remarkColors = remarkKeys.map((rm) => remarkColorMap[rm]);
 
             drawNativePie(
@@ -1204,7 +1290,7 @@
     }
 
     // ============================================================================
-    // UNIFIED 2840px NATIVE EXPORT ENGINE (1:1 Round Pies & Identical WeChat Width)
+    // UNIFIED HD VECTOR EXPORT ENGINE (All 3 Parts Draw Directly in Vector HD!)
     // ============================================================================
     function wrapCanvasLines(ctx, text, maxWidth) {
         if (!text) return ['-'];
@@ -1256,7 +1342,7 @@
     function buildNativeTablesCanvas() {
         const selectedDate = document.getElementById('dateSelector').value || '';
         const logicalW = 1420;
-        const scale = 2; // Locked to 2840px physical width
+        const scale = 2.5;
         const pad = 15;
         const tableW = logicalW - pad * 2;
         const colWidths = [95, 95, 95, 85, 55, 75, 55, 110, 725];
@@ -1349,15 +1435,12 @@
     }
 
     function buildNativeChartsCanvas() {
-        const container = document.getElementById('chartsContainer');
-        const canvases = container.querySelectorAll('canvas');
         const logicalW = 1420;
-        const scale = 2; // Locked to 2840px physical width
+        const scale = 2.5;
         const pad = 15;
         const cardW = (logicalW - pad * 3) / 2;
-        const cardH = 355;
-        const cols = 2;
-        const rows = Math.ceil(canvases.length / cols);
+        const cardH = 360;
+        const rows = currentRenderedTables.length;
         const totalLogicalH = pad + rows * (cardH + pad);
 
         const master = document.createElement('canvas');
@@ -1369,33 +1452,86 @@
         ctx.fillStyle = '#f1f1ee';
         ctx.fillRect(0, 0, logicalW, totalLogicalH);
 
-        canvases.forEach((cv, idx) => {
-            const r = Math.floor(idx / cols);
-            const c = idx % cols;
-            const x = pad + c * (cardW + pad);
-            const y = pad + r * (cardH + pad);
+        currentRenderedTables.forEach((lineData, rIdx) => {
+            const line = lineData.title;
+            const y = pad + rIdx * (cardH + pad);
+            const xLeft = pad;
+            const xRight = pad + cardW + pad;
 
+            const defectMap = {};
+            lineData.shifts.forEach((shift, sIdx) => {
+                shift.rows.forEach(r => {
+                    Object.entries(r.defects).forEach(([defect, wsArray]) => {
+                        if (!defectMap[defect]) defectMap[defect] = [0, 0, 0, 0, 0, 0];
+                        defectMap[defect][sIdx] += wsArray.length;
+                    });
+                });
+            });
+
+            const totals = Object.keys(defectMap).map(name => ({
+                name: name,
+                total: defectMap[name].reduce((a, b) => a + b, 0)
+            })).sort((a, b) => b.total - a.total);
+
+            const sortedDefectNames = totals.map(item => item.name);
+            const lineDefectColors = assignSequentialColorMap(sortedDefectNames);
+
+            const datasets = sortedDefectNames.map(name => ({
+                label: name,
+                data: defectMap[name],
+                backgroundColor: lineDefectColors[name]
+            }));
+
+            let cumulative = 0;
+            const totalDefects = totals.reduce((sum, item) => sum + item.total, 0);
+            const paretoData = totals.map(item => item.total);
+            const paretoColors = totals.map(item => lineDefectColors[item.name]);
+            const paretoLine = totals.map(item => {
+                cumulative += item.total;
+                return (cumulative / (totalDefects || 1)) * 100;
+            });
+
+            // 1. Left Card: 4-Hour Interval Defect Trend (Vector HD)
             ctx.fillStyle = '#fcfcfb';
             ctx.strokeStyle = '#e0dfda';
             ctx.lineWidth = 1;
-            ctx.fillRect(x, y, cardW, cardH);
-            ctx.strokeRect(x, y, cardW, cardH);
+            ctx.fillRect(xLeft, y, cardW, cardH);
+            ctx.strokeRect(xLeft, y, cardW, cardH);
 
-            const card = cv.closest('.card');
-            const titleText = card ? card.querySelector('h2').textContent : `Chart ${idx + 1}`;
             ctx.fillStyle = '#141413';
             ctx.font = 'bold 15px system-ui, "Noto Sans SC", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(titleText, x + 18, y + 24);
+            ctx.fillText(`${line} - 4-Hour Interval Defect Trend (4小时不良趋势)`, xLeft + 18, y + 24);
 
             ctx.strokeStyle = '#e0dfda';
             ctx.beginPath();
-            ctx.moveTo(x + 18, y + 42);
-            ctx.lineTo(x + cardW - 18, y + 42);
+            ctx.moveTo(xLeft + 18, y + 42);
+            ctx.lineTo(xLeft + cardW - 18, y + 42);
             ctx.stroke();
 
-            ctx.drawImage(cv, x + 14, y + 48, cardW - 28, cardH - 60);
+            drawStackedBarInRect(ctx, xLeft + 10, y + 48, cardW - 20, cardH - 56, globalStore.intervals, datasets);
+
+            // 2. Right Card: Top Defects Pareto (Vector HD)
+            ctx.fillStyle = '#fcfcfb';
+            ctx.strokeStyle = '#e0dfda';
+            ctx.lineWidth = 1;
+            ctx.fillRect(xRight, y, cardW, cardH);
+            ctx.strokeRect(xRight, y, cardW, cardH);
+
+            ctx.fillStyle = '#141413';
+            ctx.font = 'bold 15px system-ui, "Noto Sans SC", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${line} - Top Defects Pareto (不良排行)`, xRight + 18, y + 24);
+
+            ctx.strokeStyle = '#e0dfda';
+            ctx.beginPath();
+            ctx.moveTo(xRight + 18, y + 42);
+            ctx.lineTo(xRight + cardW - 18, y + 42);
+            ctx.stroke();
+
+            drawParetoInRect(ctx, xRight + 10, y + 48, cardW - 20, cardH - 56, sortedDefectNames, paretoData, paretoLine, paretoColors);
         });
 
         return master;
@@ -1403,7 +1539,7 @@
 
     function buildNativeSummaryCanvas() {
         const logicalW = 1420;
-        const scale = 2; // Locked to 2840px physical width
+        const scale = 2.5;
         const pad = 15;
         const cols = currentRenderedTables.length > 1 ? 2 : 1;
         const blockW = cols === 2 ? (logicalW - pad * 3) / 2 : (logicalW - pad * 2);
@@ -1501,9 +1637,9 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(`${line} - Remarks Breakdown (备注占比)`, rx + 8, pieY + 18);
 
-                const rKeys = Object.keys(bm.aggRemarks);
-                const rVals = Object.values(bm.aggRemarks);
-                const rColorMap = assignUniqueColorMap(rKeys);
+                const rKeys = Object.keys(bm.aggRemarks).sort((a, b) => bm.aggRemarks[b] - bm.aggRemarks[a]);
+                const rVals = rKeys.map(k => bm.aggRemarks[k]);
+                const rColorMap = assignSequentialColorMap(rKeys);
                 const rCols = rKeys.map(rm => rColorMap[rm]);
                 drawPieInRect(
                     ctx,
@@ -1600,6 +1736,104 @@
         return master;
     }
 
+    function canvasToBlobAsync(canvas) {
+        return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    }
+
+    async function copyBlobToClipboard(blob, btn, successLabel = '✅ Copied!') {
+        const originalText = btn.textContent;
+        try {
+            const item = new ClipboardItem({ "image/png": blob });
+            await navigator.clipboard.write([item]);
+            btn.textContent = successLabel;
+            setTimeout(() => btn.textContent = originalText, 2200);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    function downloadBlobFile(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }
+
+    async function openTripleSeparateCopyTray(btn) {
+        if (!currentRenderedTables || currentRenderedTables.length === 0) {
+            return alert("Please upload or select a report date with data first.");
+        }
+        const originalText = btn.textContent;
+        btn.textContent = '⏳ Building 3 HD Images...';
+        try {
+            const cTables = buildNativeTablesCanvas();
+            const cCharts = buildNativeChartsCanvas();
+            const cSummary = buildNativeSummaryCanvas();
+
+            const [bTables, bCharts, bSummary] = await Promise.all([
+                canvasToBlobAsync(cTables),
+                canvasToBlobAsync(cCharts),
+                canvasToBlobAsync(cSummary)
+            ]);
+
+            cachedTripleBlobs = { tables: bTables, charts: bCharts, summary: bSummary };
+
+            document.getElementById('modalPreview_1').src = cTables.toDataURL("image/png");
+            document.getElementById('modalPreview_2').src = cCharts.toDataURL("image/png");
+            document.getElementById('modalPreview_3').src = cSummary.toDataURL("image/png");
+
+            await copyBlobToClipboard(bTables, document.getElementById('modalCopyBtn_1'), '✅ Copied Part 1!');
+
+            document.getElementById('tripleCopyModal').style.display = 'flex';
+            btn.textContent = originalText;
+        } catch (e) {
+            console.error(e);
+            btn.textContent = '❌ Error';
+            setTimeout(() => btn.textContent = originalText, 2000);
+        }
+    }
+
+    document.getElementById('copyAll3Btn_header').addEventListener('click', function() { openTripleSeparateCopyTray(this); });
+    document.getElementById('copyAll3Btn_top').addEventListener('click', function() { openTripleSeparateCopyTray(this); });
+
+    document.getElementById('modalCopyBtn_1').addEventListener('click', function() {
+        if (cachedTripleBlobs.tables) copyBlobToClipboard(cachedTripleBlobs.tables, this, '✅ Copied Part 1!');
+    });
+    document.getElementById('modalCopyBtn_2').addEventListener('click', function() {
+        if (cachedTripleBlobs.charts) copyBlobToClipboard(cachedTripleBlobs.charts, this, '✅ Copied Part 2!');
+    });
+    document.getElementById('modalCopyBtn_3').addEventListener('click', function() {
+        if (cachedTripleBlobs.summary) copyBlobToClipboard(cachedTripleBlobs.summary, this, '✅ Copied Part 3!');
+    });
+
+    document.getElementById('downloadAll3ModalBtn').addEventListener('click', function() {
+        const reportDate = document.getElementById('dateSelector').value || 'Report';
+        if (!cachedTripleBlobs.tables) return;
+        downloadBlobFile(cachedTripleBlobs.tables, `1_QC_Tables_${reportDate}.png`);
+        setTimeout(() => downloadBlobFile(cachedTripleBlobs.charts, `2_QC_Charts_${reportDate}.png`), 250);
+        setTimeout(() => downloadBlobFile(cachedTripleBlobs.summary, `3_QC_Summary_${reportDate}.png`), 500);
+    });
+
+    document.getElementById('shareAll3MobileBtn').addEventListener('click', async function() {
+        const reportDate = document.getElementById('dateSelector').value || 'Report';
+        if (!cachedTripleBlobs.tables) return;
+        const files = [
+            new File([cachedTripleBlobs.tables], `1_QC_Tables_${reportDate}.png`, { type: "image/png" }),
+            new File([cachedTripleBlobs.charts], `2_QC_Charts_${reportDate}.png`, { type: "image/png" }),
+            new File([cachedTripleBlobs.summary], `3_QC_Summary_${reportDate}.png`, { type: "image/png" })
+        ];
+        if (navigator.canShare && navigator.canShare({ files })) {
+            await navigator.share({ files, title: `QC 4-Hour Report (${reportDate})` });
+        } else {
+            document.getElementById('downloadAll3ModalBtn').click();
+        }
+    });
+
     async function exportUnifiedSection(sectionType, btn, isShare = false) {
         const originalText = btn.textContent;
         btn.textContent = '📸 Generating HD...';
@@ -1628,15 +1862,10 @@
                 try {
                     const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
-                    btn.textContent = '✅ Copied!';
+                    btn.textContent = '✅ Copied HD!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 } catch (err) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    downloadBlobFile(blob, fileName);
                     btn.textContent = '✅ Downloaded!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 }
