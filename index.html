@@ -3,10 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <title>4小时 QC 检验情况汇总 (Cloud Live Sync)</title>
+    <title>4小时 QC 检验情况汇总 (Cloud Live Sync + SPC Bridge)</title>
     <!-- Fallback CDN links -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Optional Firebase SDK (Auto-falls back to HTTPS REST if blocked by IT firewall) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg: #f1f1ee; --surface: #fcfcfb; --ink: #141413; --ink2: #52514e; --ink3: #6b6a64;
@@ -211,7 +214,232 @@
     let processedBarcodes = new Set();
     let currentRenderedTables = [];
     let cachedTripleBlobs = { tables: null, charts: null, summary: null };
+
+    // 1. Primary 4-Hour QC Report Firebase Endpoint
     const FIREBASE_URL = 'https://qc-4-hour-report-default-rtdb.asia-southeast1.firebasedatabase.app/reports.json';
+
+    // 2. Shared MES SPC Barcode Dashboard & Android TV Firebase Endpoint
+    const SPC_DB_BASE_URL = 'https://mes-spc-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const SPC_GLOBAL_DATA_REST_URL = `${SPC_DB_BASE_URL}/mesGlobalData.json`;
+    let spcFirebaseDb = null;
+
+    // Initialize Firebase SDK for SPC Database if available (with automatic REST fallback if blocked by IT)
+    try {
+        if (typeof firebase !== 'undefined') {
+            const spcApp = firebase.initializeApp({ databaseURL: SPC_DB_BASE_URL }, 'spcBridgeApp');
+            spcFirebaseDb = firebase.database(spcApp);
+        }
+    } catch (e) {
+        console.warn("Firebase SDK unavailable or blocked; SPC bridge will use HTTPS REST fallback.", e);
+    }
+
+    // ============================================================================
+    // SPC BARCODE DATA EXTRACTOR & DUAL-ENGINE (SDK + REST) BACKGROUND SYNC
+    // ============================================================================
+    function parseMESDateObj(timeRaw) {
+        let dateObj;
+        if (timeRaw instanceof Date) {
+            dateObj = new Date(timeRaw.getTime());
+        } else if (typeof timeRaw === 'number') {
+            dateObj = new Date(Math.round((timeRaw - 25569) * 86400 * 1000));
+        } else {
+            let timeStr = String(timeRaw || '').trim();
+            if (timeStr.includes('T') && timeStr.includes('Z')) {
+                dateObj = new Date(timeStr);
+            } else {
+                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
+                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
+                    let timePart = timeStr.split(' ')[1] || '00:00:00';
+                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
+                }
+                dateObj = new Date(timeStr.replace(/-/g, '/'));
+            }
+        }
+        return dateObj;
+    }
+
+    function formatSPCTimeString(dateObj) {
+        const yyyy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const hh = String(dateObj.getHours()).padStart(2, '0');
+        const min = String(dateObj.getMinutes()).padStart(2, '0');
+        const ss = String(dateObj.getSeconds()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+    }
+
+    function findNumericMeasurement(row, exactKeys, regexPattern) {
+        for (let i = 0; i < exactKeys.length; i++) {
+            let val = row[exactKeys[i]];
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                let num = parseFloat(String(val).trim());
+                if (!isNaN(num) && num > 0) return num;
+            }
+        }
+        for (let k in row) {
+            if (regexPattern.test(k)) {
+                let val = row[k];
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                    let num = parseFloat(String(val).trim());
+                    if (!isNaN(num) && num > 0) return num;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Extracts W1-W4 SPC measurements (averaging workstations per master roll barcode) and syncs to mesGlobalData
+    function extractSPCRecordsFromMES(dataArray) {
+        if (!Array.isArray(dataArray)) return {};
+
+        const validLines = new Set(['W1', 'W2', 'W3', 'W4']);
+        const groupedByRoll = {};
+        const lastSeenModel = {};
+
+        const sortedRows = [...dataArray].sort((a, b) => {
+            let ta = parseMESDateObj(a['Cut Film Time'] || 0).getTime() || 0;
+            let tb = parseMESDateObj(b['Cut Film Time'] || 0).getTime() || 0;
+            return ta - tb;
+        });
+
+        sortedRows.forEach(rawRow => {
+            const row = {};
+            for (let k in rawRow) {
+                let safeKey = String(k).trim().replace(/[.#$\[\]\/]/g, '_');
+                row[safeKey] = rawRow[k];
+            }
+
+            let rawLine = String(row['Production Line'] || '').trim().toUpperCase();
+            let lineMatch = rawLine.match(/^W[1-4]/);
+            if (!lineMatch) return;
+            let line = lineMatch[0];
+            if (!validLines.has(line)) return;
+
+            let timeRaw = row['Cut Film Time'];
+            if (!timeRaw) return;
+            let dateObj = parseMESDateObj(timeRaw);
+            if (!dateObj || isNaN(dateObj.getTime())) return;
+
+            // Use Scan label (master roll barcode) first so workstation cuts average cleanly per roll
+            let rawBarcode = String(
+                row['Scan label'] ||
+                row['Large cut labels'] ||
+                row['Barcode'] ||
+                row['Document No_'] ||
+                ''
+            ).trim();
+            if (!rawBarcode) return;
+
+            // Strip trailing workstation suffix if present on master roll grouping key
+            let masterBarcode = rawBarcode;
+
+            let currentModel = String(row['Specification'] || row['Model'] || '').trim();
+            if (!currentModel) {
+                currentModel = lastSeenModel[line] || 'Unknown';
+            } else {
+                lastSeenModel[line] = currentModel;
+            }
+
+            let airVal = findNumericMeasurement(
+                row,
+                ['Air permeability', 'Air Permeability', 'Air_permeability', '透气度', '透气值', 'AirValue', 'airValue'],
+                /air\s*permeability|透气|gurley/i
+            );
+
+            let thickVal = findNumericMeasurement(
+                row,
+                ['Thickness', 'Average thickness', 'Average Thickness', 'Thickness_average', '厚度', '厚度均值', '平均厚度', 'ThickValue', 'thickValue'],
+                /thickness|厚度/i
+            );
+
+            if (airVal === null && thickVal === null) return;
+
+            let groupKey = `${line}__${masterBarcode}`;
+            if (!groupedByRoll[groupKey]) {
+                groupedByRoll[groupKey] = {
+                    line: line,
+                    barcode: masterBarcode,
+                    time: formatSPCTimeString(dateObj),
+                    timestamp: dateObj.getTime(),
+                    model: currentModel,
+                    airSum: 0,
+                    airCount: 0,
+                    thickSum: 0,
+                    thickCount: 0
+                };
+            }
+
+            let g = groupedByRoll[groupKey];
+            if (dateObj.getTime() > g.timestamp) {
+                g.timestamp = dateObj.getTime();
+                g.time = formatSPCTimeString(dateObj);
+            }
+            if (currentModel && currentModel !== 'Unknown') {
+                g.model = currentModel;
+            }
+            if (airVal !== null) {
+                g.airSum += airVal;
+                g.airCount += 1;
+            }
+            if (thickVal !== null) {
+                g.thickSum += thickVal;
+                g.thickCount += 1;
+            }
+        });
+
+        const spcPayloadMap = {};
+        Object.values(groupedByRoll).forEach(g => {
+            if (g.airCount === 0 && g.thickCount === 0) return;
+            const avgAir = g.airCount > 0 ? Number((g.airSum / g.airCount).toFixed(2)) : null;
+            const avgThick = g.thickCount > 0 ? Number((g.thickSum / g.thickCount).toFixed(2)) : null;
+
+            const safeFirebaseKey = `${g.line}_${g.barcode}`.replace(/[.#$\[\]\/]/g, '_');
+            spcPayloadMap[safeFirebaseKey] = {
+                line: g.line,
+                barcode: g.barcode,
+                time: g.time,
+                timestamp: g.timestamp,
+                airValue: avgAir,
+                thickValue: avgThick,
+                model: g.model
+            };
+        });
+
+        return spcPayloadMap;
+    }
+
+    async function pushSPCDataToSharedFirebase(spcRecordsMap) {
+        const recordKeys = Object.keys(spcRecordsMap || {});
+        if (recordKeys.length === 0) {
+            return { synced: false, count: 0, method: 'none' };
+        }
+
+        // Method 1: Try Firebase SDK update with 4.5s timeout
+        if (spcFirebaseDb) {
+            try {
+                const sdkPromise = spcFirebaseDb.ref('mesGlobalData').update(spcRecordsMap);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('SPC SDK Timeout')), 4500)
+                );
+                await Promise.race([sdkPromise, timeoutPromise]);
+                return { synced: true, count: recordKeys.length, method: 'SDK' };
+            } catch (sdkErr) {
+                console.warn('SPC Firebase SDK sync blocked or timed out, falling back to HTTPS REST PATCH:', sdkErr);
+            }
+        }
+
+        // Method 2: HTTPS REST PATCH Fallback (Bypasses WebSocket / SDK firewall blocks)
+        const restResponse = await fetch(SPC_GLOBAL_DATA_REST_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(spcRecordsMap)
+        });
+
+        if (!restResponse.ok) {
+            throw new Error(`SPC REST PATCH failed with status ${restResponse.status}`);
+        }
+        return { synced: true, count: recordKeys.length, method: 'REST' };
+    }
 
     // ============================================================================
     // TABLEAU 20 PALETTE PRIORITIZING BLUE & ORANGE FIRST (Sequential Assignment)
@@ -611,25 +839,8 @@
             if (processedBarcodes.has(barcode)) return;
             processedBarcodes.add(barcode);
             
-            let dateObj;
-            if (timeRaw instanceof Date) {
-                dateObj = new Date(timeRaw.getTime());
-            } else if (typeof timeRaw === 'number') {
-                dateObj = new Date(Math.round((timeRaw - 25569) * 86400 * 1000));
-            } else {
-                let timeStr = String(timeRaw || '').trim();
-                if (timeStr.includes('T') && timeStr.includes('Z')) {
-                    dateObj = new Date(timeStr);
-                } else {
-                    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
-                        let parts = timeStr.split(' ')[0].split(/[\/\-]/);
-                        let timePart = timeStr.split(' ')[1] || '00:00:00';
-                        timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
-                    }
-                    dateObj = new Date(timeStr.replace(/-/g, '/'));
-                }
-            }
-            if (isNaN(dateObj.getTime())) return;
+            let dateObj = parseMESDateObj(timeRaw);
+            if (!dateObj || isNaN(dateObj.getTime())) return;
             
             let currentModel = String(row['Specification'] || row['Model'] || "").trim();
             if (currentModel === "") {
@@ -849,6 +1060,7 @@
                     return cleanRow;
                 });
 
+                // 1. Parse and render 4-Hour QC summary tables & charts locally
                 parseMESData(sanitizedData);
                 updateDropdownAndRender();
 
@@ -857,24 +1069,46 @@
                     promptForMissingModels(selDate, false);
                 }
 
+                // 2. Simultaneously extract SPC barcode measurements (W1-W4, barcode, time, airValue, thickValue, model)
+                const spcRecordsMap = extractSPCRecordsFromMES(sanitizedData);
+
                 const uploadPayload = { 
                     uploadTime: new Date().toISOString(), 
                     rawData: sanitizedData,
                     userDecisions: globalStore.userDecisions
                 };
 
-                document.getElementById('reportDate').innerHTML = "⏳ Status: Pushing to Cloud...";
-                
-                fetch(FIREBASE_URL, {
+                document.getElementById('reportDate').innerHTML = "⏳ Status: Pushing to 4-Hour Cloud & SPC Barcode Dashboard...";
+
+                // Push to both 4-Hour QC Firebase AND MES SPC Barcode Firebase in parallel
+                const qcCloudPromise = fetch(FIREBASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(uploadPayload)
-                }).then(() => {
-                    document.getElementById('reportDate').style.color = "#00695c";
-                    document.getElementById('reportDate').innerHTML = "✅ Status: File processed and successfully synced to cloud.";
-                }).catch(err => {
-                    document.getElementById('reportDate').style.color = "var(--warn)";
-                    document.getElementById('reportDate').innerHTML = "⚠️ Status: Local processing complete (Cloud sync failed).";
+                }).then(r => {
+                    if (!r.ok) throw new Error('4H Cloud HTTP ' + r.status);
+                    return true;
+                });
+
+                const spcCloudPromise = pushSPCDataToSharedFirebase(spcRecordsMap);
+
+                Promise.allSettled([qcCloudPromise, spcCloudPromise]).then(results => {
+                    const qcOk = results[0].status === 'fulfilled';
+                    const spcRes = results[1].status === 'fulfilled' ? results[1].value : null;
+
+                    if (qcOk && spcRes && spcRes.synced) {
+                        document.getElementById('reportDate').style.color = "#00695c";
+                        document.getElementById('reportDate').innerHTML = `✅ Status: 4-Hour Report synced & ${spcRes.count} SPC barcodes pushed to SPC Dashboard (${spcRes.method}).`;
+                    } else if (qcOk) {
+                        document.getElementById('reportDate').style.color = "#00695c";
+                        document.getElementById('reportDate').innerHTML = "✅ Status: 4-Hour Report synced to cloud.";
+                    } else if (spcRes && spcRes.synced) {
+                        document.getElementById('reportDate').style.color = "#00695c";
+                        document.getElementById('reportDate').innerHTML = `✅ Status: Local 4-Hour Report ready & ${spcRes.count} SPC barcodes pushed to SPC Dashboard (${spcRes.method}).`;
+                    } else {
+                        document.getElementById('reportDate').style.color = "var(--warn)";
+                        document.getElementById('reportDate').innerHTML = "⚠️ Status: Local processing complete (Cloud sync offline).";
+                    }
                 });
 
             } catch (error) {
@@ -936,19 +1170,8 @@
                         filteredRaw = record.rawData.filter(row => {
                             let timeRaw = row['Cut Film Time'];
                             if (!timeRaw) return true; 
-                            let timeStr = String(timeRaw || '').trim();
-                            let dateObj;
-                            if (timeStr.includes('T') && timeStr.includes('Z')) {
-                                dateObj = new Date(timeStr);
-                            } else {
-                                if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(timeStr)) {
-                                    let parts = timeStr.split(' ')[0].split(/[\/\-]/);
-                                    let timePart = timeStr.split(' ')[1] || '00:00:00';
-                                    timeStr = `${parts[2]}/${parts[1]}/${parts[0]} ${timePart}`;
-                                }
-                                dateObj = new Date(timeStr.replace(/-/g, '/'));
-                            }
-                            if (isNaN(dateObj.getTime())) return true;
+                            let dateObj = parseMESDateObj(timeRaw);
+                            if (!dateObj || isNaN(dateObj.getTime())) return true;
                             let hour = dateObj.getHours();
                             let rDateObj = new Date(dateObj);
                             if (hour < 8) rDateObj.setDate(rDateObj.getDate() - 1);
@@ -1331,7 +1554,6 @@
         return lines;
     }
 
-    // Upgraded with maxWidth clamping so text inside any cell can NEVER touch or cross the cell border!
     function drawCenteredCell(ctx, x, y, w, h, text, bgColor, isBold = false, align = 'center', fontSize = 13.5) {
         const rx = Math.round(x);
         const ry = Math.round(y);
@@ -1353,7 +1575,7 @@
         const subLines = String(text).split('\n');
         const lineH = fontSize + 4;
         const startY = ry + (rh - (subLines.length - 1) * lineH) / 2;
-        const safeMaxWidth = Math.max(10, rw - 6); // 3px padding on left and right prevents any bertindih!
+        const safeMaxWidth = Math.max(10, rw - 6);
 
         subLines.forEach((lineStr, idx) => {
             const ly = startY + idx * lineH;
@@ -1569,7 +1791,6 @@
         return master;
     }
 
-    // Widened the 6 time columns (10.2% each) and tuned time header font to 10px so 08:00-12:00 NEVER overlaps!
     function buildNativeSummaryCanvas() {
         const logicalW = 1420;
         const scale = EXPORT_HD_SCALE;
@@ -1687,17 +1908,17 @@
                     cols === 2
                 );
 
-                // Summary Table below the 2 Pies (Wider Time Columns so 08:00-12:00 has plenty of space!)
+                // Summary Table below the 2 Pies
                 let ty = pieY + pieCardH + 12;
                 const tw = Math.round(blockW - 24);
                 const tx = Math.round(bx + 12);
                 const cWidths = [
-                    Math.round(tw * 0.13), // Category
-                    Math.round(tw * 0.12), // Item
-                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102), // 08:00-20:00 (Widened!)
-                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102)  // 20:00-08:00 (Widened!)
+                    Math.round(tw * 0.13),
+                    Math.round(tw * 0.12),
+                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102),
+                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102)
                 ];
-                cWidths.push(tw - cWidths.reduce((a, b) => a + b, 0)); // Total column
+                cWidths.push(tw - cWidths.reduce((a, b) => a + b, 0));
 
                 drawCenteredCell(ctx, tx, ty, tw, 36, `${line} - Overall Summary Details (总体汇总详情)`, getLineColor(line), true, 'center', 15);
                 ty += 36;
@@ -1705,7 +1926,6 @@
                 const sHeaders = ["Category\n(类别)", "Item\n(项目)", ...globalStore.intervals, "Total\n(总计)"];
                 let scx = tx;
                 sHeaders.forEach((sh, sIdx) => {
-                    // Use 10px for time interval columns (sIdx 2..7) so they sit cleanly with zero overlap!
                     const hdrFontSize = (sIdx >= 2 && sIdx <= 7) ? 10 : 11;
                     drawCenteredCell(ctx, scx, ty, cWidths[sIdx], 40, sh, getSubHeaderColor(line), true, 'center', hdrFontSize);
                     scx += cWidths[sIdx];
