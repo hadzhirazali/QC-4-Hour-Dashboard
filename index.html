@@ -131,16 +131,19 @@
     </div>
 </div>
 
-<!-- 3-Part Separate WeChat Image Send Tray Modal -->
-<div id="tripleCopyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; padding:20px;">
-    <div style="background:#fcfcfb; border:1px solid #141413; border-radius:12px; width:100%; max-width:1180px; max-height:90vh; overflow-y:auto; padding:20px; box-shadow:0 12px 36px rgba(0,0,0,0.3);">
+<!-- 3-Part Separate WeChat Image Send Tray Modal (Includes Copy WeChat Message!) -->
+<div id="tripleCopyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fcfcfb; border:1px solid #141413; border-radius:12px; width:100%; max-width:1220px; max-height:92vh; overflow-y:auto; padding:20px; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0dfda; padding-bottom:12px; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <div>
-                <h3 style="margin:0; font-size:18px;">📦 3 Separate WeChat Images Ready</h3>
-                <div style="font-size:12px; color:#52514e; margin-top:4px;">Part 1 (Tables) is already copied to your clipboard! Paste it in WeChat, then click Part 2 & Part 3 below — or download all 3 separate PNGs at once.</div>
+                <h3 style="margin:0; font-size:18px;">📦 3 Separate Super-HD WeChat Images Ready (5680px Ultra-HD)</h3>
+                <div style="font-size:12px; color:#52514e; margin-top:4px;">
+                    💡 <b>Tip for WeChat "Full Image (查看原图)":</b> Pasting via clipboard is compressed by WeChat, though our 4x Ultra-HD font scaling keeps numbers sharp! For zero compression + "Full Image" button, click <b>📥 Download All 3 Ultra-HD PNGs</b> and drag the files into WeChat.
+                </div>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <button id="downloadAll3ModalBtn" class="upload-btn" style="background:#17673f; border-color:#17673f; color:#fff;">📥 Download All 3 Separate PNGs</button>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button id="modalCopyMsgBtn_top" class="upload-btn" style="background:#fff; border-color:#141413; color:#141413;">📋 Copy WeChat Message</button>
+                <button id="downloadAll3ModalBtn" class="upload-btn" style="background:#17673f; border-color:#17673f; color:#fff;">📥 Download All 3 Ultra-HD PNGs</button>
                 <button id="shareAll3MobileBtn" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📤 Share All 3 (Mobile)</button>
                 <button onclick="document.getElementById('tripleCopyModal').style.display='none'" class="upload-btn" style="background:#ffebe6; border-color:#ff5c33; color:#cc3300;">✖ Close</button>
             </div>
@@ -152,7 +155,7 @@
                     <span style="font-weight:600; font-size:14px;">1️⃣ Part 1: Inspection Tables</span>
                     <button id="modalCopyBtn_1" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 1</button>
                 </div>
-                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:250px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
                     <img id="modalPreview_1" alt="Part 1 Preview" style="width:100%; height:auto; display:block;">
                 </div>
             </div>
@@ -162,7 +165,7 @@
                     <span style="font-weight:600; font-size:14px;">2️⃣ Part 2: Trend & Pareto Charts</span>
                     <button id="modalCopyBtn_2" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 2</button>
                 </div>
-                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:250px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
                     <img id="modalPreview_2" alt="Part 2 Preview" style="width:100%; height:auto; display:block;">
                 </div>
             </div>
@@ -172,10 +175,20 @@
                     <span style="font-weight:600; font-size:14px;">3️⃣ Part 3: Summary & Pie Charts</span>
                     <button id="modalCopyBtn_3" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📋 Copy Part 3</button>
                 </div>
-                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:260px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
+                <div style="background:#fff; border:1px solid #ccc; border-radius:4px; height:250px; overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:6px;">
                     <img id="modalPreview_3" alt="Part 3 Preview" style="width:100%; height:auto; display:block;">
                 </div>
             </div>
+        </div>
+
+        <!-- Step 4: WeChat Message Box inside the Modal -->
+        <div style="margin-top:14px; background:#f1f1ee; border:1px solid #e0dfda; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="font-size:13px; color:#141413; line-height:1.5;">
+                <b>4️⃣ Step 4 — WeChat Notification Message:</b><br>
+                Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours. Please be informed of the above defects, and the related departments need to make improvements.<br>
+                请参考以上 W1-W4 102湿法（MES）过去4小时的检验汇总报告。请知悉上述缺陷，相关部门需要进行改善。
+            </div>
+            <button id="modalCopyMsgBtn_bottom" class="upload-btn" style="background:#141413; border-color:#141413; color:#fff; padding:8px 18px; font-size:14px;">📋 Copy WeChat Message</button>
         </div>
     </div>
 </div>
@@ -235,12 +248,11 @@
     }
 
     // ============================================================================
-    // NATIVE VECTOR CHART RENDERERS (Locked to Desktop 640x300 aspect ratio!)
+    // NATIVE VECTOR CHART RENDERERS (Locked to Desktop 640x300 @ 3x Super-HD)
     // ============================================================================
     function setupCanvas(canvas) {
         if (!canvas) return null;
-        const dpr = Math.max(window.devicePixelRatio || 2, 2);
-        // Locked to fixed desktop logical dimensions (640x300) so mobile / small dragged windows never squish!
+        const dpr = Math.max(window.devicePixelRatio || 3, 3);
         const w = 640;
         const h = 300;
         canvas.width = w * dpr;
@@ -248,6 +260,8 @@
         canvas.style.width = '100%';
         canvas.style.height = '100%';
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.scale(dpr, dpr);
         ctx.clearRect(0, 0, w, h);
         return { ctx, w, h };
@@ -257,9 +271,10 @@
         ctx.fillStyle = '#f8f8f6';
         ctx.fillRect(x + 10, y + 10, w - 20, h - 20);
         ctx.strokeStyle = '#e0dfda';
+        ctx.lineWidth = 1.2;
         ctx.strokeRect(x + 10, y + 10, w - 20, h - 20);
         ctx.fillStyle = '#6b6a64';
-        ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+        ctx.font = '600 13.5px system-ui, -apple-system, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(msg, x + w / 2, y + h / 2);
@@ -270,7 +285,7 @@
         const maxVal = Math.max(...totalsPerSlot, 0);
 
         let legX = rx + 48, legY = ry + 14;
-        ctx.font = '12px system-ui, "Noto Sans SC", sans-serif';
+        ctx.font = '600 12.5px system-ui, "Noto Sans SC", sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         if (datasets.length === 0) {
@@ -280,8 +295,8 @@
             ctx.fillText('0 Defects (100% Pass)', legX + 16, legY);
         } else {
             datasets.forEach(ds => {
-                const tw = ctx.measureText(ds.label).width + 26;
-                if (legX + tw > rx + w - 16) { legX = rx + 48; legY += 18; }
+                const tw = ctx.measureText(ds.label).width + 28;
+                if (legX + tw > rx + w - 16) { legX = rx + 48; legY += 19; }
                 ctx.fillStyle = ds.backgroundColor;
                 ctx.fillRect(legX, legY - 5, 12, 10);
                 ctx.fillStyle = '#141413';
@@ -290,21 +305,21 @@
             });
         }
 
-        const padL = 48, padR = 20, padT = (legY - ry) + 22, padB = 36;
+        const padL = 48, padR = 20, padT = (legY - ry) + 24, padB = 36;
         const plotW = w - padL - padR;
         const plotH = h - padT - padB;
         const yMax = maxVal === 0 ? 5 : Math.ceil(maxVal * 1.18);
         const steps = 5;
 
-        ctx.strokeStyle = '#e7e6e1';
+        ctx.strokeStyle = '#dcdbd6';
         ctx.lineWidth = 1;
-        ctx.fillStyle = '#52514e';
-        ctx.font = '11px system-ui, sans-serif';
+        ctx.fillStyle = '#141413';
+        ctx.font = '500 11.5px system-ui, sans-serif';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         for (let i = 0; i <= steps; i++) {
             const val = (yMax / steps) * i;
-            const y = ry + padT + plotH - (i / steps) * plotH;
+            const y = Math.round(ry + padT + plotH - (i / steps) * plotH) + 0.5;
             ctx.beginPath();
             ctx.moveTo(rx + padL, y);
             ctx.lineTo(rx + padL + plotW, y);
@@ -318,7 +333,7 @@
         labels.forEach((lbl, i) => {
             const cx = rx + padL + i * slotW + slotW / 2;
             ctx.fillStyle = '#141413';
-            ctx.font = '11px system-ui, sans-serif';
+            ctx.font = '600 11.5px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(lbl, cx, ry + padT + plotH + 18);
@@ -336,7 +351,7 @@
 
             if (totalsPerSlot[i] > 0) {
                 ctx.fillStyle = '#141413';
-                ctx.font = 'bold 11.5px system-ui, sans-serif';
+                ctx.font = 'bold 12.5px system-ui, sans-serif';
                 ctx.fillText(totalsPerSlot[i], cx, currentBottom - 9);
             }
         });
@@ -361,18 +376,18 @@
         const yMax = Math.ceil(maxCount * 1.25);
         const steps = 5;
 
-        ctx.font = '11px system-ui, sans-serif';
+        ctx.font = '500 11.5px system-ui, sans-serif';
         ctx.textBaseline = 'middle';
         for (let i = 0; i <= steps; i++) {
-            const y = ry + padT + plotH - (i / steps) * plotH;
-            ctx.strokeStyle = '#e7e6e1';
+            const y = Math.round(ry + padT + plotH - (i / steps) * plotH) + 0.5;
+            ctx.strokeStyle = '#dcdbd6';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(rx + padL, y);
             ctx.lineTo(rx + padL + plotW, y);
             ctx.stroke();
 
-            ctx.fillStyle = '#52514e';
+            ctx.fillStyle = '#141413';
             ctx.textAlign = 'right';
             const leftVal = (yMax / steps) * i;
             ctx.fillText(Number.isInteger(leftVal) ? leftVal : leftVal.toFixed(1), rx + padL - 6, y);
@@ -396,7 +411,7 @@
 
             const shortLbl = lbl.length > 14 ? lbl.substring(0, 12) + '..' : lbl;
             ctx.fillStyle = '#141413';
-            ctx.font = '11px system-ui, sans-serif';
+            ctx.font = '600 11.5px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(shortLbl, cx, ry + padT + plotH + 18);
 
@@ -405,7 +420,7 @@
         });
 
         ctx.strokeStyle = '#141413';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
         linePts.forEach((pt, i) => {
             if (i === 0) ctx.moveTo(pt.x, pt.y);
@@ -416,17 +431,17 @@
         linePts.forEach(pt => {
             ctx.fillStyle = '#141413';
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+            ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
             ctx.fill();
         });
 
         linePts.forEach(pt => {
-            ctx.font = 'bold 11.5px system-ui, sans-serif';
+            ctx.font = 'bold 12.5px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const labelY = pt.barTop - 9;
             ctx.strokeStyle = '#fcfcfb';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3.5;
             ctx.strokeText(pt.val, pt.x, labelY);
             ctx.fillStyle = '#141413';
             ctx.fillText(pt.val, pt.x, labelY);
@@ -439,8 +454,7 @@
         drawParetoInRect(env.ctx, 0, 0, env.w, env.h, labels, counts, cumPct, barColors);
     }
 
-    // 2-Pass 1:1 Circular Pie Renderer:
-    // Pass 1 draws all slices. Pass 2 draws all percentage labels ON TOP with anti-collision so no label is ever hidden!
+    // 2-Pass 1:1 Circular Pie Renderer with larger, crisper fonts for WeChat zoom
     function drawPieInRect(ctx, rx, ry, rw, rh, labels, values, sliceColors, isCompact = false) {
         const total = values.reduce((a, b) => a + b, 0);
         if (total === 0) {
@@ -448,11 +462,11 @@
             return;
         }
 
-        const cx = rx + rw * (isCompact ? 0.31 : 0.36);
+        const cx = rx + rw * (isCompact ? 0.32 : 0.36);
         const cy = ry + rh * 0.5;
-        const maxRadX = (cx - rx) - 14;
-        const maxRadY = (rh / 2) - 14;
-        const radius = Math.max(25, Math.min(maxRadX, maxRadY, isCompact ? 80 : 125));
+        const maxRadX = (cx - rx) - 12;
+        const maxRadY = (rh / 2) - 12;
+        const radius = Math.max(30, Math.min(maxRadX, maxRadY, isCompact ? 86 : 125));
 
         // PASS 1: Draw all pie slices & white borders first
         let startAngle = -Math.PI / 2;
@@ -470,7 +484,7 @@
             ctx.fillStyle = sliceColors[i % sliceColors.length];
             ctx.fill();
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2.2;
             ctx.stroke();
 
             const pct = (val * 100 / total);
@@ -485,9 +499,9 @@
             startAngle = endAngle;
         });
 
-        // PASS 2: Draw all percentage labels on the TOP layer with staggered radii for adjacent small slices
+        // PASS 2: Draw all percentage labels on the TOP layer with anti-collision
         const placedBoxes = [];
-        const fontSize = isCompact ? 10.5 : 12;
+        const fontSize = isCompact ? 12 : 13;
         ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -514,28 +528,28 @@
 
             ctx.lineJoin = 'round';
             ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 3.5;
             ctx.strokeText(item.txt, tx, ty);
             ctx.fillStyle = '#ffffff';
             ctx.fillText(item.txt, tx, ty);
         });
 
-        // Legend on the right
-        const legX = rx + rw * (isCompact ? 0.59 : 0.62);
-        const rowStep = isCompact ? 18 : 22;
+        // Legend on the right with larger font
+        const legX = rx + rw * (isCompact ? 0.58 : 0.62);
+        const rowStep = isCompact ? 20 : 23;
         let legY = Math.max(ry + 16, cy - (labels.length * rowStep) / 2 + rowStep / 2);
-        ctx.font = `${isCompact ? 10.5 : 12}px system-ui, "Noto Sans SC", sans-serif`;
+        ctx.font = `600 ${isCompact ? 11.5 : 12.5}px system-ui, "Noto Sans SC", sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
         labels.forEach((lbl, i) => {
             const val = values[i] || 0;
             const pct = ((val / total) * 100).toFixed(2) + '%';
-            const boxSize = isCompact ? 10 : 12;
+            const boxSize = isCompact ? 11 : 12;
             ctx.fillStyle = sliceColors[i % sliceColors.length];
             ctx.fillRect(legX, legY - boxSize / 2, boxSize, boxSize);
             ctx.fillStyle = '#141413';
-            ctx.fillText(`${lbl}: ${val} (${pct})`, legX + boxSize + 5, legY);
+            ctx.fillText(`${lbl}: ${val} (${pct})`, legX + boxSize + 6, legY);
             legY += rowStep;
         });
     }
@@ -1040,7 +1054,6 @@
         </div>`;
     }
 
-    // Updated with 4th row under Comprehensive Grade: Total Output (总产出) = A + 注意 + F for each timeframe!
     function generateSummaryHTML(line, lineData) {
         const intervals = globalStore.intervals;
         let uniqueRemarks = new Set();
@@ -1296,8 +1309,10 @@
     }
 
     // ============================================================================
-    // UNIFIED HD VECTOR EXPORT ENGINE (Fixed 1420x2.5 Desktop Output on Mobile & PC!)
+    // SUPER-HD 4.0x (5680px) VECTOR EXPORT ENGINE (Anti-Overlap Cell Clamping!)
     // ============================================================================
+    const EXPORT_HD_SCALE = 4.0;
+
     function wrapCanvasLines(ctx, text, maxWidth) {
         if (!text) return ['-'];
         const words = String(text).split(' ');
@@ -1316,31 +1331,38 @@
         return lines;
     }
 
-    function drawCenteredCell(ctx, x, y, w, h, text, bgColor, isBold = false, align = 'center', fontSize = 13) {
+    // Upgraded with maxWidth clamping so text inside any cell can NEVER touch or cross the cell border!
+    function drawCenteredCell(ctx, x, y, w, h, text, bgColor, isBold = false, align = 'center', fontSize = 13.5) {
+        const rx = Math.round(x);
+        const ry = Math.round(y);
+        const rw = Math.round(w);
+        const rh = Math.round(h);
+
         if (bgColor) {
             ctx.fillStyle = bgColor;
-            ctx.fillRect(x, y, w, h);
+            ctx.fillRect(rx, ry, rw, rh);
         }
         ctx.strokeStyle = '#141413';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, w, h);
+        ctx.lineWidth = 1.15;
+        ctx.strokeRect(rx + 0.5, ry + 0.5, rw, rh);
 
         ctx.fillStyle = '#141413';
-        ctx.font = `${isBold ? 'bold ' : ''}${fontSize}px system-ui, "Noto Sans SC", sans-serif`;
+        ctx.font = `${isBold ? '700 ' : '500 '}${fontSize}px system-ui, -apple-system, "Microsoft YaHei", "Noto Sans SC", sans-serif`;
         ctx.textBaseline = 'middle';
 
         const subLines = String(text).split('\n');
-        const lineH = fontSize + 5;
-        const startY = y + (h - (subLines.length - 1) * lineH) / 2;
+        const lineH = fontSize + 4;
+        const startY = ry + (rh - (subLines.length - 1) * lineH) / 2;
+        const safeMaxWidth = Math.max(10, rw - 6); // 3px padding on left and right prevents any bertindih!
 
         subLines.forEach((lineStr, idx) => {
             const ly = startY + idx * lineH;
             if (align === 'left') {
                 ctx.textAlign = 'left';
-                ctx.fillText(lineStr, x + 8, ly);
+                ctx.fillText(lineStr, rx + 8, ly, rw - 14);
             } else {
                 ctx.textAlign = 'center';
-                ctx.fillText(lineStr, x + w / 2, ly);
+                ctx.fillText(lineStr, rx + rw / 2, ly, safeMaxWidth);
             }
         });
     }
@@ -1348,14 +1370,14 @@
     function buildNativeTablesCanvas() {
         const selectedDate = document.getElementById('dateSelector').value || '';
         const logicalW = 1420;
-        const scale = 2.5;
+        const scale = EXPORT_HD_SCALE;
         const pad = 15;
         const tableW = logicalW - pad * 2;
         const colWidths = [95, 95, 95, 85, 55, 75, 55, 110, 725];
 
         const tempCanvas = document.createElement('canvas');
         const tCtx = tempCanvas.getContext('2d');
-        tCtx.font = '13px system-ui, "Noto Sans SC", sans-serif';
+        tCtx.font = '500 13.5px system-ui, "Noto Sans SC", sans-serif';
 
         let totalLogicalH = pad;
         const tableLayouts = currentRenderedTables.map(lineData => {
@@ -1367,15 +1389,15 @@
                         return `${k}${wsStr} (${v.length})`;
                     }).join(', ');
                     if (desc === '') desc = '-';
-                    const wrappedDesc = wrapCanvasLines(tCtx, desc, colWidths[8] - 16);
-                    const rowH = Math.max(48, wrappedDesc.length * 19 + 16);
+                    const wrappedDesc = wrapCanvasLines(tCtx, desc, colWidths[8] - 18);
+                    const rowH = Math.max(48, wrappedDesc.length * 20 + 16);
                     return { r, wrappedDesc, rowH };
                 });
                 const shiftH = rowLayouts.reduce((s, rl) => s + rl.rowH, 0);
                 return { rowLayouts, shiftH };
             });
             const dataH = shiftLayouts.reduce((s, sl) => s + sl.shiftH, 0);
-            const tableTotalH = 38 + 46 + dataH;
+            const tableTotalH = 40 + 48 + dataH;
             totalLogicalH += tableTotalH + 22;
             return { line: lineData.title, shiftLayouts, dataH, tableTotalH };
         });
@@ -1384,6 +1406,8 @@
         master.width = logicalW * scale;
         master.height = totalLogicalH * scale;
         const ctx = master.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.scale(scale, scale);
 
         ctx.fillStyle = '#f1f1ee';
@@ -1401,22 +1425,22 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(x0, curY, tableW, tl.tableTotalH);
 
-            drawCenteredCell(ctx, x0, curY, tableW, 38, `${tl.line} 检验情况汇总 (Inspection Summary)`, getLineColor(tl.line), true, 'center', 15);
-            curY += 38;
+            drawCenteredCell(ctx, x0, curY, tableW, 40, `${tl.line} 检验情况汇总 (Inspection Summary)`, getLineColor(tl.line), true, 'center', 16);
+            curY += 40;
 
             let cx = x0;
             headers.forEach((hText, cIdx) => {
-                drawCenteredCell(ctx, cx, curY, colWidths[cIdx], 46, hText, getSubHeaderColor(tl.line), false, 'center', 12);
+                drawCenteredCell(ctx, cx, curY, colWidths[cIdx], 48, hText, getSubHeaderColor(tl.line), true, 'center', 13);
                 cx += colWidths[cIdx];
             });
-            curY += 46;
+            curY += 48;
 
-            drawCenteredCell(ctx, x0, curY, colWidths[0], tl.dataH, selectedDate, '#ffffff', false, 'center', 13);
+            drawCenteredCell(ctx, x0, curY, colWidths[0], tl.dataH, selectedDate, '#ffffff', true, 'center', 13.5);
 
             let shiftY = curY;
             tl.shiftLayouts.forEach((sl, sIdx) => {
                 const timeStr = globalStore.intervals[sIdx];
-                drawCenteredCell(ctx, x0 + colWidths[0], shiftY, colWidths[1], sl.shiftH, timeStr, '#ffffff', false, 'center', 13);
+                drawCenteredCell(ctx, x0 + colWidths[0], shiftY, colWidths[1], sl.shiftH, timeStr, '#ffffff', false, 'center', 13.5);
 
                 let rowY = shiftY;
                 sl.rowLayouts.forEach(rl => {
@@ -1425,10 +1449,10 @@
                     const vals = [r.model || '', r.total, r.a, r.n, r.f, aRate];
                     let rcx = x0 + colWidths[0] + colWidths[1];
                     vals.forEach((v, vIdx) => {
-                        drawCenteredCell(ctx, rcx, rowY, colWidths[vIdx + 2], rl.rowH, String(v), '#ffffff', false, 'center', 13);
+                        drawCenteredCell(ctx, rcx, rowY, colWidths[vIdx + 2], rl.rowH, String(v), '#ffffff', false, 'center', 13.5);
                         rcx += colWidths[vIdx + 2];
                     });
-                    drawCenteredCell(ctx, rcx, rowY, colWidths[8], rl.rowH, rl.wrappedDesc.join('\n'), '#ffffff', false, 'left', 13);
+                    drawCenteredCell(ctx, rcx, rowY, colWidths[8], rl.rowH, rl.wrappedDesc.join('\n'), '#ffffff', false, 'left', 13.5);
                     rowY += rl.rowH;
                 });
                 shiftY += sl.shiftH;
@@ -1442,10 +1466,10 @@
 
     function buildNativeChartsCanvas() {
         const logicalW = 1420;
-        const scale = 2.5;
+        const scale = EXPORT_HD_SCALE;
         const pad = 15;
         const cardW = (logicalW - pad * 3) / 2;
-        const cardH = 360;
+        const cardH = 365;
         const rows = currentRenderedTables.length;
         const totalLogicalH = pad + rows * (cardH + pad);
 
@@ -1453,6 +1477,8 @@
         master.width = logicalW * scale;
         master.height = totalLogicalH * scale;
         const ctx = master.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.scale(scale, scale);
 
         ctx.fillStyle = '#f1f1ee';
@@ -1497,15 +1523,15 @@
                 return (cumulative / (totalDefects || 1)) * 100;
             });
 
-            // 1. Left Card: 4-Hour Interval Defect Trend (Vector HD)
+            // 1. Left Card: 4-Hour Interval Defect Trend (4x Ultra-HD Vector)
             ctx.fillStyle = '#fcfcfb';
-            ctx.strokeStyle = '#e0dfda';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#141413';
+            ctx.lineWidth = 1.1;
             ctx.fillRect(xLeft, y, cardW, cardH);
-            ctx.strokeRect(xLeft, y, cardW, cardH);
+            ctx.strokeRect(xLeft + 0.5, y + 0.5, cardW, cardH);
 
             ctx.fillStyle = '#141413';
-            ctx.font = 'bold 15px system-ui, "Noto Sans SC", sans-serif';
+            ctx.font = 'bold 16px system-ui, "Noto Sans SC", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillText(`${line} - 4-Hour Interval Defect Trend (4小时不良趋势)`, xLeft + 18, y + 24);
@@ -1518,15 +1544,15 @@
 
             drawStackedBarInRect(ctx, xLeft + 10, y + 48, cardW - 20, cardH - 56, globalStore.intervals, datasets);
 
-            // 2. Right Card: Top Defects Pareto (Vector HD)
+            // 2. Right Card: Top Defects Pareto (4x Ultra-HD Vector)
             ctx.fillStyle = '#fcfcfb';
-            ctx.strokeStyle = '#e0dfda';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#141413';
+            ctx.lineWidth = 1.1;
             ctx.fillRect(xRight, y, cardW, cardH);
-            ctx.strokeRect(xRight, y, cardW, cardH);
+            ctx.strokeRect(xRight + 0.5, y + 0.5, cardW, cardH);
 
             ctx.fillStyle = '#141413';
-            ctx.font = 'bold 15px system-ui, "Noto Sans SC", sans-serif';
+            ctx.font = 'bold 16px system-ui, "Noto Sans SC", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillText(`${line} - Top Defects Pareto (不良排行)`, xRight + 18, y + 24);
@@ -1543,12 +1569,14 @@
         return master;
     }
 
+    // Widened the 6 time columns (10.2% each) and tuned time header font to 10px so 08:00-12:00 NEVER overlaps!
     function buildNativeSummaryCanvas() {
         const logicalW = 1420;
-        const scale = 2.5;
+        const scale = EXPORT_HD_SCALE;
         const pad = 15;
         const cols = currentRenderedTables.length > 1 ? 2 : 1;
         const blockW = cols === 2 ? (logicalW - pad * 3) / 2 : (logicalW - pad * 2);
+        const rowCellH = 36;
 
         const blockMeta = currentRenderedTables.map(lineData => {
             const uniqueRemarks = new Set();
@@ -1568,9 +1596,8 @@
             });
             const remarkList = Array.from(uniqueRemarks).sort();
             const remarkCount = Math.max(1, remarkList.length);
-            // 4 rows under Comprehensive Grade (A, 注意, F, Total Output) + Station Remarks rows
             const tableRowsCount = 4 + remarkCount;
-            const blockH = 16 + 240 + 12 + 32 + 34 + tableRowsCount * 30 + 16;
+            const blockH = 14 + 250 + 12 + 36 + 40 + tableRowsCount * rowCellH + 16;
             return { lineData, remarkList, remarkCount, blockH, totalA, totalN, totalF, aggRemarks };
         });
 
@@ -1587,6 +1614,8 @@
         master.width = logicalW * scale;
         master.height = totalLogicalH * scale;
         const ctx = master.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.scale(scale, scale);
 
         ctx.fillStyle = '#f1f1ee';
@@ -1605,27 +1634,28 @@
 
                 ctx.fillStyle = '#ffffff';
                 ctx.strokeStyle = '#141413';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = 1.2;
                 ctx.fillRect(bx, by, blockW, rowH);
-                ctx.strokeRect(bx, by, blockW, rowH);
+                ctx.strokeRect(bx + 0.5, by + 0.5, blockW, rowH);
 
                 const pieCardW = (blockW - 36) / 2;
-                const pieCardH = 240;
+                const pieCardH = 250;
                 const pieY = by + 12;
 
                 // Left Pie Card
                 ctx.fillStyle = '#fcfcfb';
-                ctx.strokeStyle = '#e0dfda';
+                ctx.strokeStyle = '#dcdbd6';
+                ctx.lineWidth = 1;
                 ctx.fillRect(bx + 12, pieY, pieCardW, pieCardH);
-                ctx.strokeRect(bx + 12, pieY, pieCardW, pieCardH);
+                ctx.strokeRect(bx + 12.5, pieY + 0.5, pieCardW, pieCardH);
                 ctx.fillStyle = '#141413';
-                ctx.font = 'bold 12px system-ui, "Noto Sans SC", sans-serif';
+                ctx.font = 'bold 13.5px system-ui, "Noto Sans SC", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`${line} - Grade Breakdown (总评占比)`, bx + 20, pieY + 18);
+                ctx.fillText(`${line} - Grade Breakdown (总评占比)`, bx + 20, pieY + 19);
                 drawPieInRect(
                     ctx,
-                    bx + 12, pieY + 30, pieCardW, pieCardH - 32,
+                    bx + 12, pieY + 32, pieCardW, pieCardH - 34,
                     ['A', '注意', 'F'],
                     [bm.totalA, bm.totalN, bm.totalF],
                     ['#a9d08e', '#eda100', '#ff4d4d'],
@@ -1635,14 +1665,14 @@
                 // Right Pie Card
                 const rx = bx + 24 + pieCardW;
                 ctx.fillStyle = '#fcfcfb';
-                ctx.strokeStyle = '#e0dfda';
+                ctx.strokeStyle = '#dcdbd6';
                 ctx.fillRect(rx, pieY, pieCardW, pieCardH);
-                ctx.strokeRect(rx, pieY, pieCardW, pieCardH);
+                ctx.strokeRect(rx + 0.5, pieY + 0.5, pieCardW, pieCardH);
                 ctx.fillStyle = '#141413';
-                ctx.font = 'bold 12px system-ui, "Noto Sans SC", sans-serif';
+                ctx.font = 'bold 13.5px system-ui, "Noto Sans SC", sans-serif';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`${line} - Remarks Breakdown (备注占比)`, rx + 8, pieY + 18);
+                ctx.fillText(`${line} - Remarks Breakdown (备注占比)`, rx + 10, pieY + 19);
 
                 const rKeys = Object.keys(bm.aggRemarks).sort((a, b) => bm.aggRemarks[b] - bm.aggRemarks[a]);
                 const rVals = rKeys.map(k => bm.aggRemarks[k]);
@@ -1650,37 +1680,39 @@
                 const rCols = rKeys.map(rm => rColorMap[rm]);
                 drawPieInRect(
                     ctx,
-                    rx, pieY + 30, pieCardW, pieCardH - 32,
+                    rx, pieY + 32, pieCardW, pieCardH - 34,
                     rKeys,
                     rVals,
                     rCols,
                     cols === 2
                 );
 
-                // Summary Table below the 2 Pies
+                // Summary Table below the 2 Pies (Wider Time Columns so 08:00-12:00 has plenty of space!)
                 let ty = pieY + pieCardH + 12;
-                const tw = blockW - 24;
-                const tx = bx + 12;
+                const tw = Math.round(blockW - 24);
+                const tx = Math.round(bx + 12);
                 const cWidths = [
-                    tw * 0.16,
-                    tw * 0.14,
-                    tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09, tw * 0.09,
-                    tw * 0.16
+                    Math.round(tw * 0.13), // Category
+                    Math.round(tw * 0.12), // Item
+                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102), // 08:00-20:00 (Widened!)
+                    Math.round(tw * 0.102), Math.round(tw * 0.102), Math.round(tw * 0.102)  // 20:00-08:00 (Widened!)
                 ];
+                cWidths.push(tw - cWidths.reduce((a, b) => a + b, 0)); // Total column
 
-                drawCenteredCell(ctx, tx, ty, tw, 32, `${line} - Overall Summary Details (总体汇总详情)`, getLineColor(line), true, 'center', 13);
-                ty += 32;
+                drawCenteredCell(ctx, tx, ty, tw, 36, `${line} - Overall Summary Details (总体汇总详情)`, getLineColor(line), true, 'center', 15);
+                ty += 36;
 
                 const sHeaders = ["Category\n(类别)", "Item\n(项目)", ...globalStore.intervals, "Total\n(总计)"];
                 let scx = tx;
                 sHeaders.forEach((sh, sIdx) => {
-                    drawCenteredCell(ctx, scx, ty, cWidths[sIdx], 34, sh, getSubHeaderColor(line), false, 'center', 10);
+                    // Use 10px for time interval columns (sIdx 2..7) so they sit cleanly with zero overlap!
+                    const hdrFontSize = (sIdx >= 2 && sIdx <= 7) ? 10 : 11;
+                    drawCenteredCell(ctx, scx, ty, cWidths[sIdx], 40, sh, getSubHeaderColor(line), true, 'center', hdrFontSize);
                     scx += cWidths[sIdx];
                 });
-                ty += 34;
+                ty += 40;
 
-                // Spans 4 rows (120px) for A, 注意, F, and Total Output (总产出)
-                drawCenteredCell(ctx, tx, ty, cWidths[0], 120, "Comprehensive\nGrade (总评)", '#ffffff', false, 'center', 10);
+                drawCenteredCell(ctx, tx, ty, cWidths[0], rowCellH * 4, "Comprehensive\nGrade\n(总评)", '#ffffff', true, 'center', 10.5);
 
                 let aTot = 0, nTot = 0, fTot = 0, overallTot = 0;
                 const shiftTotals = bm.lineData.shifts.map(s => {
@@ -1694,48 +1726,48 @@
                     { label: 'A', vals: shiftTotals.map(x => x.sa), tot: aTot, bg: '#ffffff', isBold: false },
                     { label: '注意', vals: shiftTotals.map(x => x.sn), tot: nTot, bg: '#ffffff', isBold: false },
                     { label: 'F', vals: shiftTotals.map(x => x.sf), tot: fTot, bg: '#ffffff', isBold: false },
-                    { label: 'Total Output\n(总产出)', vals: shiftTotals.map(x => x.st), tot: overallTot, bg: '#f8f8f6', isBold: true }
+                    { label: 'Total Output\n(总产出)', vals: shiftTotals.map(x => x.st), tot: overallTot, bg: '#f1f1ee', isBold: true }
                 ];
 
                 gradeRows.forEach(gr => {
                     let gcx = tx + cWidths[0];
-                    drawCenteredCell(ctx, gcx, ty, cWidths[1], 30, gr.label, gr.bg, gr.isBold, 'center', 9.5);
+                    drawCenteredCell(ctx, gcx, ty, cWidths[1], rowCellH, gr.label, gr.bg, gr.isBold, 'center', 10.5);
                     gcx += cWidths[1];
                     gr.vals.forEach((v, vIdx) => {
-                        drawCenteredCell(ctx, gcx, ty, cWidths[2 + vIdx], 30, String(v), gr.bg, gr.isBold, 'center', 10);
+                        drawCenteredCell(ctx, gcx, ty, cWidths[2 + vIdx], rowCellH, String(v), gr.bg, gr.isBold, 'center', 13);
                         gcx += cWidths[2 + vIdx];
                     });
                     const pct = overallTot ? ((gr.tot / overallTot) * 100).toFixed(2) + '%' : '0.00%';
-                    drawCenteredCell(ctx, gcx, ty, cWidths[8], 30, `${gr.tot} (${pct})`, gr.bg, true, 'center', 10);
-                    ty += 30;
+                    drawCenteredCell(ctx, gcx, ty, cWidths[8], rowCellH, `${gr.tot} (${pct})`, gr.bg, true, 'center', 11.5);
+                    ty += rowCellH;
                 });
 
-                drawCenteredCell(ctx, tx, ty, cWidths[0], bm.remarkCount * 30, "Station Remarks\n(备注)", '#ffffff', false, 'center', 10);
+                drawCenteredCell(ctx, tx, ty, cWidths[0], bm.remarkCount * rowCellH, "Station\nRemarks\n(备注)", '#ffffff', true, 'center', 10.5);
                 if (bm.remarkList.length === 0) {
                     let rcx = tx + cWidths[0];
-                    drawCenteredCell(ctx, rcx, ty, cWidths[1], 30, "-", '#ffffff', false, 'center', 10);
+                    drawCenteredCell(ctx, rcx, ty, cWidths[1], rowCellH, "-", '#ffffff', false, 'center', 11.5);
                     rcx += cWidths[1];
                     for (let i = 0; i < 6; i++) {
-                        drawCenteredCell(ctx, rcx, ty, cWidths[2 + i], 30, "0", '#ffffff', false, 'center', 10);
+                        drawCenteredCell(ctx, rcx, ty, cWidths[2 + i], rowCellH, "0", '#ffffff', false, 'center', 13);
                         rcx += cWidths[2 + i];
                     }
-                    drawCenteredCell(ctx, rcx, ty, cWidths[8], 30, "0 (0.00%)", '#ffffff', true, 'center', 10);
+                    drawCenteredCell(ctx, rcx, ty, cWidths[8], rowCellH, "0 (0.00%)", '#ffffff', true, 'center', 11.5);
                 } else {
                     bm.remarkList.forEach(rm => {
                         let rcx = tx + cWidths[0];
-                        drawCenteredCell(ctx, rcx, ty, cWidths[1], 30, rm, '#ffffff', false, 'center', 10);
+                        drawCenteredCell(ctx, rcx, ty, cWidths[1], rowCellH, rm, '#ffffff', false, 'center', 11);
                         rcx += cWidths[1];
                         let rmTot = 0;
                         bm.lineData.shifts.forEach((s, sIdx) => {
                             let cVal = 0;
                             s.rows.forEach(row => { cVal += (row.stationRemarks[rm] || 0); });
                             rmTot += cVal;
-                            drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], 30, String(cVal), '#ffffff', false, 'center', 10);
+                            drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], rowCellH, String(cVal), '#ffffff', false, 'center', 13);
                             rcx += cWidths[2 + sIdx];
                         });
                         const rPct = overallTot ? ((rmTot / overallTot) * 100).toFixed(2)+'%' : '0.00%';
-                        drawCenteredCell(ctx, rcx, ty, cWidths[8], 30, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 10);
-                        ty += 30;
+                        drawCenteredCell(ctx, rcx, ty, cWidths[8], rowCellH, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 11.5);
+                        ty += rowCellH;
                     });
                 }
             }
@@ -1746,10 +1778,10 @@
     }
 
     function canvasToBlobAsync(canvas) {
-        return new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+        return new Promise(resolve => canvas.toBlob(resolve, "image/png", 1.0));
     }
 
-    async function copyBlobToClipboard(blob, btn, successLabel = '✅ Copied!') {
+    async function copyBlobToClipboard(blob, btn, successLabel = '✅ Copied Ultra-HD!') {
         const originalText = btn.textContent;
         try {
             const item = new ClipboardItem({ "image/png": blob });
@@ -1773,12 +1805,24 @@
         setTimeout(() => URL.revokeObjectURL(url), 3000);
     }
 
+    function copyWeChatMessageText(btn) {
+        const originalText = btn.textContent;
+        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours. Please be informed of the above defects, and the related departments need to make improvements.\n请参考以上 W1-W4 102湿法（MES）过去4小时的检验汇总报告。请知悉上述缺陷，相关部门需要进行改善。";
+        navigator.clipboard.writeText(msg).then(() => {
+            btn.textContent = '✅ Message Copied!';
+            setTimeout(() => btn.textContent = originalText, 2200);
+        }).catch(() => {
+            btn.textContent = '❌ Failed to copy';
+            setTimeout(() => btn.textContent = originalText, 2000);
+        });
+    }
+
     async function openTripleSeparateCopyTray(btn) {
         if (!currentRenderedTables || currentRenderedTables.length === 0) {
             return alert("Please upload or select a report date with data first.");
         }
         const originalText = btn.textContent;
-        btn.textContent = '⏳ Building 3 HD Images...';
+        btn.textContent = '⏳ Building 4x Ultra-HD...';
         try {
             const cTables = buildNativeTablesCanvas();
             const cCharts = buildNativeChartsCanvas();
@@ -1792,9 +1836,9 @@
 
             cachedTripleBlobs = { tables: bTables, charts: bCharts, summary: bSummary };
 
-            document.getElementById('modalPreview_1').src = cTables.toDataURL("image/png");
-            document.getElementById('modalPreview_2').src = cCharts.toDataURL("image/png");
-            document.getElementById('modalPreview_3').src = cSummary.toDataURL("image/png");
+            document.getElementById('modalPreview_1').src = URL.createObjectURL(bTables);
+            document.getElementById('modalPreview_2').src = URL.createObjectURL(bCharts);
+            document.getElementById('modalPreview_3').src = URL.createObjectURL(bSummary);
 
             await copyBlobToClipboard(bTables, document.getElementById('modalCopyBtn_1'), '✅ Copied Part 1!');
 
@@ -1819,6 +1863,9 @@
     document.getElementById('modalCopyBtn_3').addEventListener('click', function() {
         if (cachedTripleBlobs.summary) copyBlobToClipboard(cachedTripleBlobs.summary, this, '✅ Copied Part 3!');
     });
+
+    document.getElementById('modalCopyMsgBtn_top').addEventListener('click', function() { copyWeChatMessageText(this); });
+    document.getElementById('modalCopyMsgBtn_bottom').addEventListener('click', function() { copyWeChatMessageText(this); });
 
     document.getElementById('downloadAll3ModalBtn').addEventListener('click', function() {
         const reportDate = document.getElementById('dateSelector').value || 'Report';
@@ -1845,7 +1892,7 @@
 
     async function exportUnifiedSection(sectionType, btn, isShare = false) {
         const originalText = btn.textContent;
-        btn.textContent = '📸 Generating HD...';
+        btn.textContent = '📸 Generating 4x HD...';
         try {
             if (!currentRenderedTables || currentRenderedTables.length === 0) {
                 throw new Error("No data rendered");
@@ -1871,14 +1918,14 @@
                 try {
                     const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
-                    btn.textContent = '✅ Copied HD!';
+                    btn.textContent = '✅ Copied 4x HD!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 } catch (err) {
                     downloadBlobFile(blob, fileName);
                     btn.textContent = '✅ Downloaded!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 }
-            }, "image/png");
+            }, "image/png", 1.0);
         } catch (e) {
             console.error(e);
             btn.textContent = '❌ Error';
@@ -1896,15 +1943,7 @@
     document.getElementById('exportExcelBtn_bottom').addEventListener('click', exportToExcel);
 
     document.getElementById('copyMessageBtn').addEventListener('click', function() {
-        const originalText = this.textContent;
-        const msg = "Please refer to the above for the W1-W4 102 Wet Process (MES) inspection summary report for the last 4 hours. Please be informed of the above defects, and the related departments need to make improvements.\n请参考以上 W1-W4 102湿法（MES）过去4小时的检验汇总报告。请知悉上述缺陷，相关部门需要进行改善。";
-        navigator.clipboard.writeText(msg).then(() => {
-            this.textContent = '✅ Copied!';
-            setTimeout(() => this.textContent = originalText, 2000);
-        }).catch(err => {
-            this.textContent = '❌ Failed to copy';
-            setTimeout(() => this.textContent = originalText, 2000);
-        });
+        copyWeChatMessageText(this);
     });
 
     function exportToExcel() {
@@ -2048,7 +2087,6 @@
                 ws_data.push(sumHeaders.map(h => ({ v: h, s: { fill: { fgColor: { rgb: getExcelSubColor(line) } }, alignment: { horizontal: "center", vertical: "center", border: borderAll } } })));
 
                 let gradeStartRow = summaryTitleRow + 2;
-                // Merge Comprehensive Grade across 4 rows (A, 注意, F, Total Output)
                 merges.push({ s: {r: gradeStartRow, c: 0}, e: {r: gradeStartRow + 3, c: 0} });
 
                 let aRow = [{v:"Comprehensive Grade (总评)"}, {v:"A"}];
