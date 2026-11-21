@@ -139,14 +139,14 @@
     <div style="background:#fcfcfb; border:1px solid #141413; border-radius:12px; width:100%; max-width:1220px; max-height:92vh; overflow-y:auto; padding:20px; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0dfda; padding-bottom:12px; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <div>
-                <h3 style="margin:0; font-size:18px;">📦 3 Separate Super-HD WeChat Images Ready (5680px Ultra-HD)</h3>
+                <h3 style="margin:0; font-size:18px;">📦 3 Separate HD WeChat Images Ready (2840px Auto-Load HD)</h3>
                 <div style="font-size:12px; color:#52514e; margin-top:4px;">
-                    💡 <b>Tip for WeChat "Full Image (查看原图)":</b> Pasting via clipboard is compressed by WeChat, though our 4x Ultra-HD font scaling keeps numbers sharp! For zero compression + "Full Image" button, click <b>📥 Download All 3 Ultra-HD PNGs</b> and drag the files into WeChat.
+                    💡 Optimized at 2.0x HD (`2840px`) so Table 1, Table 2, and Table 3 stay sharp and auto-load directly in WeChat without requiring a manual "Full Image" download.
                 </div>
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <button id="modalCopyMsgBtn_top" class="upload-btn" style="background:#fff; border-color:#141413; color:#141413;">📋 Copy WeChat Message</button>
-                <button id="downloadAll3ModalBtn" class="upload-btn" style="background:#17673f; border-color:#17673f; color:#fff;">📥 Download All 3 Ultra-HD PNGs</button>
+                <button id="downloadAll3ModalBtn" class="upload-btn" style="background:#17673f; border-color:#17673f; color:#fff;">📥 Download All 3 HD PNGs</button>
                 <button id="shareAll3MobileBtn" class="upload-btn" style="background:#2a78d6; border-color:#2a78d6; color:#fff;">📤 Share All 3 (Mobile)</button>
                 <button onclick="document.getElementById('tripleCopyModal').style.display='none'" class="upload-btn" style="background:#ffebe6; border-color:#ff5c33; color:#cc3300;">✖ Close</button>
             </div>
@@ -320,7 +320,6 @@
             let dateObj = parseMESDateObj(timeRaw);
             if (!dateObj || isNaN(dateObj.getTime())) return;
 
-            // Use Scan label (master roll barcode) first so workstation cuts average cleanly per roll
             let rawBarcode = String(
                 row['Scan label'] ||
                 row['Large cut labels'] ||
@@ -330,7 +329,6 @@
             ).trim();
             if (!rawBarcode) return;
 
-            // Strip trailing workstation suffix if present on master roll grouping key
             let masterBarcode = rawBarcode;
 
             let currentModel = String(row['Specification'] || row['Model'] || '').trim();
@@ -682,7 +680,6 @@
         drawParetoInRect(env.ctx, 0, 0, env.w, env.h, labels, counts, cumPct, barColors);
     }
 
-    // 2-Pass 1:1 Circular Pie Renderer with larger, crisper fonts for WeChat zoom
     function drawPieInRect(ctx, rx, ry, rw, rh, labels, values, sliceColors, isCompact = false) {
         const total = values.reduce((a, b) => a + b, 0);
         if (total === 0) {
@@ -696,7 +693,6 @@
         const maxRadY = (rh / 2) - 12;
         const radius = Math.max(30, Math.min(maxRadX, maxRadY, isCompact ? 86 : 125));
 
-        // PASS 1: Draw all pie slices & white borders first
         let startAngle = -Math.PI / 2;
         const labelQueue = [];
 
@@ -727,7 +723,6 @@
             startAngle = endAngle;
         });
 
-        // PASS 2: Draw all percentage labels on the TOP layer with anti-collision
         const placedBoxes = [];
         const fontSize = isCompact ? 12 : 13;
         ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
@@ -762,7 +757,6 @@
             ctx.fillText(item.txt, tx, ty);
         });
 
-        // Legend on the right with larger font
         const legX = rx + rw * (isCompact ? 0.58 : 0.62);
         const rowStep = isCompact ? 20 : 23;
         let legY = Math.max(ry + 16, cy - (labels.length * rowStep) / 2 + rowStep / 2);
@@ -1080,7 +1074,6 @@
 
                 document.getElementById('reportDate').innerHTML = "⏳ Status: Pushing to 4-Hour Cloud & SPC Barcode Dashboard...";
 
-                // Push to both 4-Hour QC Firebase AND MES SPC Barcode Firebase in parallel
                 const qcCloudPromise = fetch(FIREBASE_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1532,9 +1525,9 @@
     }
 
     // ============================================================================
-    // SUPER-HD 4.0x (5680px) VECTOR EXPORT ENGINE (Anti-Overlap Cell Clamping!)
+    // HD 2.0x (2840px) VECTOR EXPORT ENGINE (Auto-loads in HD inside WeChat!)
     // ============================================================================
-    const EXPORT_HD_SCALE = 4.0;
+    const EXPORT_HD_SCALE = 2.0;
 
     function wrapCanvasLines(ctx, text, maxWidth) {
         if (!text) return ['-'];
@@ -1745,7 +1738,6 @@
                 return (cumulative / (totalDefects || 1)) * 100;
             });
 
-            // 1. Left Card: 4-Hour Interval Defect Trend (4x Ultra-HD Vector)
             ctx.fillStyle = '#fcfcfb';
             ctx.strokeStyle = '#141413';
             ctx.lineWidth = 1.1;
@@ -1766,7 +1758,6 @@
 
             drawStackedBarInRect(ctx, xLeft + 10, y + 48, cardW - 20, cardH - 56, globalStore.intervals, datasets);
 
-            // 2. Right Card: Top Defects Pareto (4x Ultra-HD Vector)
             ctx.fillStyle = '#fcfcfb';
             ctx.strokeStyle = '#141413';
             ctx.lineWidth = 1.1;
@@ -1863,7 +1854,6 @@
                 const pieCardH = 250;
                 const pieY = by + 12;
 
-                // Left Pie Card
                 ctx.fillStyle = '#fcfcfb';
                 ctx.strokeStyle = '#dcdbd6';
                 ctx.lineWidth = 1;
@@ -1883,7 +1873,6 @@
                     cols === 2
                 );
 
-                // Right Pie Card
                 const rx = bx + 24 + pieCardW;
                 ctx.fillStyle = '#fcfcfb';
                 ctx.strokeStyle = '#dcdbd6';
@@ -1908,7 +1897,6 @@
                     cols === 2
                 );
 
-                // Summary Table below the 2 Pies
                 let ty = pieY + pieCardH + 12;
                 const tw = Math.round(blockW - 24);
                 const tx = Math.round(bx + 12);
@@ -2001,7 +1989,7 @@
         return new Promise(resolve => canvas.toBlob(resolve, "image/png", 1.0));
     }
 
-    async function copyBlobToClipboard(blob, btn, successLabel = '✅ Copied Ultra-HD!') {
+    async function copyBlobToClipboard(blob, btn, successLabel = '✅ Copied HD!') {
         const originalText = btn.textContent;
         try {
             const item = new ClipboardItem({ "image/png": blob });
@@ -2042,7 +2030,7 @@
             return alert("Please upload or select a report date with data first.");
         }
         const originalText = btn.textContent;
-        btn.textContent = '⏳ Building 4x Ultra-HD...';
+        btn.textContent = '⏳ Building 3 HD Images...';
         try {
             const cTables = buildNativeTablesCanvas();
             const cCharts = buildNativeChartsCanvas();
@@ -2112,7 +2100,7 @@
 
     async function exportUnifiedSection(sectionType, btn, isShare = false) {
         const originalText = btn.textContent;
-        btn.textContent = '📸 Generating 4x HD...';
+        btn.textContent = '📸 Generating HD...';
         try {
             if (!currentRenderedTables || currentRenderedTables.length === 0) {
                 throw new Error("No data rendered");
@@ -2138,7 +2126,7 @@
                 try {
                     const item = new ClipboardItem({ "image/png": blob });
                     await navigator.clipboard.write([item]);
-                    btn.textContent = '✅ Copied 4x HD!';
+                    btn.textContent = '✅ Copied HD!';
                     setTimeout(() => btn.textContent = originalText, 2500);
                 } catch (err) {
                     downloadBlobFile(blob, fileName);
