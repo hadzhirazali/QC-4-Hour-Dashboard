@@ -141,7 +141,7 @@
             <div>
                 <h3 style="margin:0; font-size:18px;">📦 3 Separate HD WeChat Images Ready (2840px Auto-Load HD)</h3>
                 <div style="font-size:12px; color:#52514e; margin-top:4px;">
-                    💡 Optimized at 2.0x HD (`2840px`) so Table 1, Table 2, and Table 3 stay sharp and auto-load directly in WeChat without requiring a manual "Full Image" download.
+                    💡 Optimized at 2.0x HD (2840px) so Table 1, Table 2, and Table 3 stay sharp and auto-load directly in WeChat without requiring a manual "Full Image" download.
                 </div>
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1808,9 +1808,9 @@
             });
             const remarkList = Array.from(uniqueRemarks).sort();
             const remarkCount = Math.max(1, remarkList.length);
-            const tableRowsCount = 4 + remarkCount;
-            const blockH = 14 + 250 + 12 + 36 + 40 + tableRowsCount * rowCellH + 16;
-            return { lineData, remarkList, remarkCount, blockH, totalA, totalN, totalF, aggRemarks };
+            const remarkRowH = remarkCount === 1 ? 46 : rowCellH;
+            const blockH = 14 + 250 + 12 + 36 + 40 + (4 * rowCellH) + (remarkCount * remarkRowH) + 16;
+            return { lineData, remarkList, remarkCount, remarkRowH, blockH, totalA, totalN, totalF, aggRemarks };
         });
 
         const gridRows = Math.ceil(blockMeta.length / cols);
@@ -1950,32 +1950,33 @@
                     ty += rowCellH;
                 });
 
-                drawCenteredCell(ctx, tx, ty, cWidths[0], bm.remarkCount * rowCellH, "Station\nRemarks\n(备注)", '#ffffff', true, 'center', 10.5);
+                const remarkLabel = bm.remarkCount === 1 ? "Station Remarks\n(备注)" : "Station\nRemarks\n(备注)";
+                drawCenteredCell(ctx, tx, ty, cWidths[0], bm.remarkCount * bm.remarkRowH, remarkLabel, '#ffffff', true, 'center', 10);
                 if (bm.remarkList.length === 0) {
                     let rcx = tx + cWidths[0];
-                    drawCenteredCell(ctx, rcx, ty, cWidths[1], rowCellH, "-", '#ffffff', false, 'center', 11.5);
+                    drawCenteredCell(ctx, rcx, ty, cWidths[1], bm.remarkRowH, "-", '#ffffff', false, 'center', 11.5);
                     rcx += cWidths[1];
                     for (let i = 0; i < 6; i++) {
-                        drawCenteredCell(ctx, rcx, ty, cWidths[2 + i], rowCellH, "0", '#ffffff', false, 'center', 13);
+                        drawCenteredCell(ctx, rcx, ty, cWidths[2 + i], bm.remarkRowH, "0", '#ffffff', false, 'center', 13);
                         rcx += cWidths[2 + i];
                     }
-                    drawCenteredCell(ctx, rcx, ty, cWidths[8], rowCellH, "0 (0.00%)", '#ffffff', true, 'center', 11.5);
+                    drawCenteredCell(ctx, rcx, ty, cWidths[8], bm.remarkRowH, "0 (0.00%)", '#ffffff', true, 'center', 11.5);
                 } else {
                     bm.remarkList.forEach(rm => {
                         let rcx = tx + cWidths[0];
-                        drawCenteredCell(ctx, rcx, ty, cWidths[1], rowCellH, rm, '#ffffff', false, 'center', 11);
+                        drawCenteredCell(ctx, rcx, ty, cWidths[1], bm.remarkRowH, rm, '#ffffff', false, 'center', 11);
                         rcx += cWidths[1];
                         let rmTot = 0;
                         bm.lineData.shifts.forEach((s, sIdx) => {
                             let cVal = 0;
                             s.rows.forEach(row => { cVal += (row.stationRemarks[rm] || 0); });
                             rmTot += cVal;
-                            drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], rowCellH, String(cVal), '#ffffff', false, 'center', 13);
+                            drawCenteredCell(ctx, rcx, ty, cWidths[2 + sIdx], bm.remarkRowH, String(cVal), '#ffffff', false, 'center', 13);
                             rcx += cWidths[2 + sIdx];
                         });
                         const rPct = overallTot ? ((rmTot / overallTot) * 100).toFixed(2)+'%' : '0.00%';
-                        drawCenteredCell(ctx, rcx, ty, cWidths[8], rowCellH, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 11.5);
-                        ty += rowCellH;
+                        drawCenteredCell(ctx, rcx, ty, cWidths[8], bm.remarkRowH, `${rmTot} (${rPct})`, '#ffffff', true, 'center', 11.5);
+                        ty += bm.remarkRowH;
                     });
                 }
             }
