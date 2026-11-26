@@ -969,10 +969,11 @@
     window.addEventListener('DOMContentLoaded', () => { loadFromCloudAndRender(); });
     document.getElementById('syncCloudBtn').addEventListener('click', loadFromCloudAndRender);
 
-    function promptForMissingModels(selectedDate, syncToCloud = false) {
+    function promptForMissingModels(selectedDate, syncToCloud = false, reAskBlank = false) {
         let activeData = globalStore.data_by_date[selectedDate];
         if (!activeData) return false;
 
+        // Only collect time intervals where at least one line (W1-W4) has output data
         let activeIntervals = new Set();
         const lines = ["W1", "W2", "W3", "W4"];
         
@@ -997,13 +998,24 @@
                 let shiftTotal = lineData ? lineData.shifts[idx].total : 0;
                 
                 if (shiftTotal === 0) {
-                    if (globalStore.userDecisions[selectedDate][line][idx] === undefined) {
+                    let existingDecision = globalStore.userDecisions[selectedDate][line][idx];
+                    // Prompt if never answered, OR if re-uploading and the previous user left it blank
+                    let shouldPrompt = (existingDecision === undefined) || (reAskBlank && String(existingDecision).trim() === "");
+
+                    if (shouldPrompt) {
                         let prevModel = "";
-                        if (idx > 0 && globalStore.userDecisions[selectedDate][line][idx-1]) {
-                            prevModel = globalStore.userDecisions[selectedDate][line][idx-1];
+                        // Auto-suggest model from previous interval's actual MES data or manual input
+                        if (idx > 0) {
+                            if (lineData && lineData.shifts[idx - 1] && lineData.shifts[idx - 1].models) {
+                                let prevModels = Object.keys(lineData.shifts[idx - 1].models).filter(m => m !== "" && m !== "Unknown");
+                                if (prevModels.length > 0) prevModel = prevModels[0];
+                            }
+                            if (!prevModel && globalStore.userDecisions[selectedDate][line][idx - 1]) {
+                                prevModel = globalStore.userDecisions[selectedDate][line][idx - 1];
+                            }
                         }
                         
-                        let userInput = prompt(`⚠️ Missing Data Detected!\n\nNo output found for ${line} during ${timeInterval}.\n\nPlease enter the Model name (e.g. SW509J, SW810K).\nLeave blank if the line was down.`, prevModel);
+                        let userInput = prompt(`⚠️ Missing Data Detected!\n\nNo output found for ${line} during ${timeInterval} (other lines have data).\n\nPlease enter the Model name (e.g. SW509J, SW810K).\nLeave blank if the line was down.`, prevModel);
                         
                         if (userInput !== null && userInput.trim() !== "") {
                             globalStore.userDecisions[selectedDate][line][idx] = userInput.trim();
@@ -1060,7 +1072,7 @@
 
                 let selDate = document.getElementById('dateSelector').value;
                 if(selDate) {
-                    promptForMissingModels(selDate, false);
+                    promptForMissingModels(selDate, false, true);
                 }
 
                 // 2. Simultaneously extract SPC barcode measurements (W1-W4, barcode, time, airValue, thickValue, model)
